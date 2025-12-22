@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "112874581164",
+    "project_id": "agrikeep-19747",
+    "storage_bucket": "agrikeep-19747.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:112874581164:android:cdb3748c9947e998c60309",
+        "android_client_info": {
+          "package_name": "com.example.agrikeep"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzwLDHHSN4iW3Zv8gQ80YYepc672ffNOU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:112874581164:android:6a653c87431df766c60309",
+        "android_client_info": {
+          "package_name": "com.example.myagrikeep"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzwLDHHSN4iW3Zv8gQ80YYepc672ffNOU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
