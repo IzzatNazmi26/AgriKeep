@@ -9,7 +9,7 @@ class FarmProfile {
   final List<String> preferredCrops;
   final String? waterSource;
   final String? sunlightExposure;
-  final String? environmentType;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -24,7 +24,7 @@ class FarmProfile {
     this.preferredCrops = const [],
     this.waterSource,
     this.sunlightExposure,
-    this.environmentType,
+
     required this.createdAt,
     required this.updatedAt,
   });
@@ -42,7 +42,7 @@ class FarmProfile {
       'preferredCrops': preferredCrops,
       'waterSource': waterSource,
       'sunlightExposure': sunlightExposure,
-      'environmentType': environmentType,
+
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
     };
@@ -61,7 +61,7 @@ class FarmProfile {
       preferredCrops: List<String>.from(data['preferredCrops'] ?? []),
       waterSource: data['waterSource'],
       sunlightExposure: data['sunlightExposure'],
-      environmentType: data['environmentType'],
+
       createdAt: DateTime.fromMillisecondsSinceEpoch(data['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(data['updatedAt'] ?? 0),
     );
@@ -80,7 +80,7 @@ class FarmProfile {
       preferredCrops: List<String>.from(map['preferredCrops'] ?? []),
       waterSource: map['waterSource'],
       sunlightExposure: map['sunlightExposure'],
-      environmentType: map['environmentType'],
+
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
     );
@@ -98,7 +98,7 @@ class FarmProfile {
     List<String>? preferredCrops,
     String? waterSource,
     String? sunlightExposure,
-    String? environmentType,
+
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -113,7 +113,7 @@ class FarmProfile {
       preferredCrops: preferredCrops ?? this.preferredCrops,
       waterSource: waterSource ?? this.waterSource,
       sunlightExposure: sunlightExposure ?? this.sunlightExposure,
-      environmentType: environmentType ?? this.environmentType,
+
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

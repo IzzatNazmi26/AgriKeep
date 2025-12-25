@@ -135,4 +135,49 @@ class Crop {
 
   @override
   int get hashCode => id.hashCode;
+
+  // ... existing properties ...
+
+  // Add this method at the end of the class (before the last closing brace)
+
+  /// Extract maximum days from duration string like '75–90 days'
+  /// Returns the higher number (90) for filtering
+
+  int get maxDurationDays {
+    try {
+      final cleanDuration = duration.split('(').first.trim();
+      final cleanDuration2 = cleanDuration.replaceAll(' days', '').replaceAll('–', '-');
+      final parts = cleanDuration2.split('-');
+
+      if (parts.length == 2) {
+        final minDays = int.tryParse(parts[0].trim()) ?? 0;
+        final maxDays = int.tryParse(parts[1].trim()) ?? 0;
+        return maxDays > minDays ? maxDays : minDays;
+      } else if (parts.length == 1) {
+        return int.tryParse(parts[0].trim()) ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  int get minDurationDays {
+    try {
+      final cleanDuration = duration.split('(').first.trim();
+      final cleanDuration2 = cleanDuration.replaceAll(' days', '').replaceAll('–', '-');
+      final parts = cleanDuration2.split('-');
+
+      if (parts.length == 2) {
+        return int.tryParse(parts[0].trim()) ?? 0;
+      } else if (parts.length == 1) {
+        return int.tryParse(parts[0].trim()) ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
 }
+
+

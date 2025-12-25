@@ -5,6 +5,7 @@ import 'package:agrikeep/widgets/crop_card.dart';
 import 'package:agrikeep/widgets/custom_button.dart';
 import 'package:agrikeep/widgets/input_field.dart';
 import 'package:agrikeep/models/recommendation_input.dart';
+import 'package:agrikeep/models/crop.dart';
 import 'package:agrikeep/utils/mock_data.dart';
 import 'package:agrikeep/utils/theme.dart';
 
@@ -22,29 +23,21 @@ class RecommendationsPage extends StatefulWidget {
 
 class _RecommendationsPageState extends State<RecommendationsPage> {
   bool _showResults = false;
+  bool _hasAtLeastOneField = false;
   final _formKey = GlobalKey<FormState>();
 
-  // Form data - Updated to match new requirements
+  // Form data
   final RecommendationInput _formData = RecommendationInput(
-    season: '',
     soilType: '',
     waterAvailability: '',
     farmSize: 0.0,
   );
 
-  // Enhanced form data
-  String _environmentType = '';
-  String _currentSeason = '';
+  // Additional form fields
   String _sunlightExposure = '';
+  String? _selectedDurationRange;
 
-  // Updated options based on requirements
-  final List<String> _environmentOptions = [
-    'Greenhouse',
-    'Open Field',
-    'Raised Bed / Polybag Farming',
-    'Fertigation System'
-  ];
-
+  // Updated options
   final List<String> _soilTypeOptions = [
     'Loamy',
     'Sandy',
@@ -64,33 +57,132 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
     'Low'
   ];
 
-  final List<String> _currentSeasonOptions = [
-    'Dry Season',
-    'Rainy/Monsoon'
+  // 30-day standard ranges starting from 30 days
+  final List<String> _durationRanges = [
+    '30–60 days',
+    '60–90 days',
+    '90–120 days',
+    '120–150 days',
   ];
 
-  final List<String> _previousCropOptions = [
-    'Rice', 'Wheat', 'Cotton', 'Sugarcane', 'None/First Crop'
-  ];
+  // Parse range string to get min and max days
+  (int, int) _parseDurationRange(String range) {
+    try {
+      final clean = range.replaceAll(' days', '').replaceAll('–', '-');
+      final parts = clean.split('-');
+      if (parts.length == 2) {
+        final min = int.tryParse(parts[0].trim()) ?? 0;
+        final max = int.tryParse(parts[1].trim()) ?? 0;
+        return (min, max);
+      }
+    } catch (e) {
+      // ignore
+    }
+    return (0, 0);
+  }
+
+  // Check if at least one field is filled
+  void _checkFormFilled() {
+    setState(() {
+      _hasAtLeastOneField = _formData.soilType.isNotEmpty ||
+          _sunlightExposure.isNotEmpty ||
+          _formData.waterAvailability.isNotEmpty ||
+          _selectedDurationRange != null;
+    });
+  }
 
   void _handleSubmit() {
-    if (_formKey.currentState!.validate()) {
+    if (_hasAtLeastOneField) {
       setState(() => _showResults = true);
     }
+  }
+
+  // Check if crop matches ALL selected criteria
+  bool _matchesAllSelectedCriteria(Crop crop) {
+    // Track which criteria need to be checked
+    bool needsSoilMatch = _formData.soilType.isNotEmpty;
+    bool needsSunlightMatch = _sunlightExposure.isNotEmpty;
+    bool needsWaterMatch = _formData.waterAvailability.isNotEmpty;
+    bool needsDurationMatch = _selectedDurationRange != null;
+
+    // 1. Soil match (PARTIAL MATCH)
+    if (needsSoilMatch) {
+      final soilMatches = crop.soilType.any((soil) =>
+          soil.toLowerCase().contains(_formData.soilType.toLowerCase()));
+      if (!soilMatches) return false;
+    }
+
+    // 2. Sunlight match
+    if (needsSunlightMatch) {
+      if (crop.climate == null) return false;
+      final cropClimate = crop.climate!.toLowerCase();
+      final selectedSunlight = _sunlightExposure.toLowerCase();
+
+      final sunlightMatches = cropClimate.contains(selectedSunlight) ||
+          (selectedSunlight == 'full sun' && cropClimate.contains('full')) ||
+          (selectedSunlight == 'partial shade' && (cropClimate.contains('partial') || cropClimate.contains('shade'))) ||
+          (selectedSunlight == 'shaded' && cropClimate.contains('shade'));
+      if (!sunlightMatches) return false;
+    }
+
+    // 3. Water requirement (EXACT MATCH)
+    if (needsWaterMatch) {
+      if (crop.waterRequirement != _formData.waterAvailability) {
+        return false;
+      }
+    }
+
+    // 4. Duration match (30-DAY RANGE MATCHING)
+    if (needsDurationMatch) {
+      final (selectedMin, selectedMax) = _parseDurationRange(_selectedDurationRange!);
+      final cropMin = crop.minDurationDays;
+      final cropMax = crop.maxDurationDays;
+
+      // Check: Crop range overlaps with selected range AND crop max ≤ selected max
+      final hasOverlap = !(cropMin > selectedMax || cropMax < selectedMin);
+      final withinMaxLimit = cropMax <= selectedMax;
+
+      if (!hasOverlap || !withinMaxLimit) {
+        return false;
+      }
+    }
+
+    // Crop passed ALL selected criteria checks
+    return true;
+  }
+
+  List<String> _getSelectedCriteria() {
+    final criteria = <String>[];
+
+    if (_formData.soilType.isNotEmpty) {
+      criteria.add('Soil: ${_formData.soilType}');
+    }
+    if (_sunlightExposure.isNotEmpty) {
+      criteria.add('Sunlight: $_sunlightExposure');
+    }
+    if (_formData.waterAvailability.isNotEmpty) {
+      criteria.add('Water: ${_formData.waterAvailability}');
+    }
+    if (_selectedDurationRange != null) {
+      criteria.add('Duration: $_selectedDurationRange');
+    }
+
+    return criteria;
   }
 
   void _handleReset() {
     setState(() {
       _showResults = false;
       // Reset all form fields
-      _formData.season = '';
       _formData.soilType = '';
       _formData.waterAvailability = '';
       _formData.farmSize = 0.0;
       _formData.previousCrop = null;
-      _environmentType = '';
-      _currentSeason = '';
+      _formData.maxDurationDays = null;
+
       _sunlightExposure = '';
+      _selectedDurationRange = null;
+      _hasAtLeastOneField = false;
     });
   }
 
@@ -138,7 +230,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Tell us about your farm conditions and planting schedule',
+                      'Select at least one criteria. Crops must match ALL selected criteria.',
                       style: TextStyle(
                         fontSize: 14,
                         color: AgriKeepTheme.textSecondary,
@@ -150,7 +242,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          // Environmental Conditions Card
+                          // Main form card (without title)
                           CustomCard(
                             backgroundColor: const Color(0xFFF0FDF4),
                             border: Border.all(
@@ -159,37 +251,23 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Environmental Conditions',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: AgriKeepTheme.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-
-                                // // Environment Type
-                                // InputField(
-                                //   label: 'Environment Type',
-                                //   value: _environmentType,
-                                //   onChanged: (value) => setState(() => _environmentType = value),
-                                //   options: _environmentOptions,
-                                //   selectedOption: _environmentType.isNotEmpty ? _environmentType : null,
-                                //   onOptionSelected: (value) => setState(() => _environmentType = value ?? ''),
-                                //   required: true,
-                                // ),
-                                // const SizedBox(height: 16),
+                                const SizedBox(height: 8),
 
                                 // Soil Conditions
                                 InputField(
                                   label: 'Soil Conditions',
                                   value: _formData.soilType,
-                                  onChanged: (value) => setState(() => _formData.soilType = value),
+                                  onChanged: (value) {
+                                    setState(() => _formData.soilType = value);
+                                    _checkFormFilled();
+                                  },
                                   options: _soilTypeOptions,
                                   selectedOption: _formData.soilType.isNotEmpty ? _formData.soilType : null,
-                                  onOptionSelected: (value) => setState(() => _formData.soilType = value ?? ''),
-                                  required: true,
+                                  onOptionSelected: (value) {
+                                    setState(() => _formData.soilType = value ?? '');
+                                    _checkFormFilled();
+                                  },
+                                  required: false,
                                 ),
                                 const SizedBox(height: 16),
 
@@ -197,11 +275,17 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                                 InputField(
                                   label: 'Sunlight Exposure',
                                   value: _sunlightExposure,
-                                  onChanged: (value) => setState(() => _sunlightExposure = value),
+                                  onChanged: (value) {
+                                    setState(() => _sunlightExposure = value);
+                                    _checkFormFilled();
+                                  },
                                   options: _sunlightOptions,
                                   selectedOption: _sunlightExposure.isNotEmpty ? _sunlightExposure : null,
-                                  onOptionSelected: (value) => setState(() => _sunlightExposure = value ?? ''),
-                                  required: true,
+                                  onOptionSelected: (value) {
+                                    setState(() => _sunlightExposure = value ?? '');
+                                    _checkFormFilled();
+                                  },
+                                  required: false,
                                 ),
                                 const SizedBox(height: 16),
 
@@ -209,58 +293,94 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                                 InputField(
                                   label: 'Water Availability',
                                   value: _formData.waterAvailability,
-                                  onChanged: (value) => setState(() => _formData.waterAvailability = value),
+                                  onChanged: (value) {
+                                    setState(() => _formData.waterAvailability = value);
+                                    _checkFormFilled();
+                                  },
                                   options: _waterOptions,
                                   selectedOption: _formData.waterAvailability.isNotEmpty ? _formData.waterAvailability : null,
-                                  onOptionSelected: (value) => setState(() => _formData.waterAvailability = value ?? ''),
-                                  required: true,
+                                  onOptionSelected: (value) {
+                                    setState(() => _formData.waterAvailability = value ?? '');
+                                    _checkFormFilled();
+                                  },
+                                  required: false,
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Current Season
+                                // Duration Range (30-day ranges)
                                 InputField(
-                                  label: 'Current Season',
-                                  value: _currentSeason,
-                                  onChanged: (value) => setState(() => _currentSeason = value),
-                                  options: _currentSeasonOptions,
-                                  selectedOption: _currentSeason.isNotEmpty ? _currentSeason : null,
-                                  onOptionSelected: (value) => setState(() => _currentSeason = value ?? ''),
-                                  required: true,
+                                  label: 'Planting Duration Range',
+                                  value: _selectedDurationRange ?? '',
+                                  onChanged: (value) {
+                                    setState(() => _selectedDurationRange = value);
+                                    _checkFormFilled();
+                                  },
+                                  options: _durationRanges,
+                                  selectedOption: _selectedDurationRange,
+                                  onOptionSelected: (value) {
+                                    setState(() => _selectedDurationRange = value);
+                                    _checkFormFilled();
+                                  },
+                                  required: false,
+                                  hintText: 'Select 30-day duration range',
                                 ),
+                                const SizedBox(height: 8),
+
+                                // Instructions
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Duration ranges show crops finishing within that period.',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AgriKeepTheme.textSecondary,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Example: "30–60 days" shows crops taking 30–60 days to harvest.',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AgriKeepTheme.textSecondary,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
                               ],
                             ),
                           ),
                           const SizedBox(height: 16),
 
-                          // // Farm Size and Previous Crop
-                          // InputField(
-                          //   label: 'Farm Size',
-                          //   value: _formData.farmSize > 0 ? _formData.farmSize.toString() : '',
-                          //   onChanged: (value) => setState(() => _formData.farmSize = double.tryParse(value) ?? 0.0),
-                          //   keyboardType: TextInputType.number,
-                          //   hintText: 'Enter area',
-                          //   unit: 'hectares',
-                          //   required: true,
-                          // ),
-                          // const SizedBox(height: 16),
-                          // InputField(
-                          //   label: 'Previous Crop (Optional)',
-                          //   value: _formData.previousCrop ?? '',
-                          //   onChanged: (value) => setState(() => _formData.previousCrop = value),
-                          //   options: _previousCropOptions,
-                          //   selectedOption: _formData.previousCrop,
-                          //   onOptionSelected: (value) => setState(() => _formData.previousCrop = value),
-                          // ),
-                          // const SizedBox(height: 32),
-
-                          // Submit Button
+                          // Submit Button - Enabled only if at least one field filled
                           CustomButton(
                             text: 'Get Recommendations',
-                            onPressed: _handleSubmit,
+                            onPressed: _hasAtLeastOneField ? _handleSubmit : null,
                             variant: ButtonVariant.primary,
                             size: ButtonSize.large,
                             fullWidth: true,
+                            disabled: !_hasAtLeastOneField,
                           ),
+                          const SizedBox(height: 8),
+
+                          // Warning if no fields filled
+                          if (!_hasAtLeastOneField)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                'Please select at least one criteria',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: const Color(0xFFDC2626),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -275,9 +395,16 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
   }
 
   Widget _buildResultsScreen() {
-    final filteredCrops = MockData.mockCrops
-        .where((crop) => crop.season.contains(_currentSeason))
+    // Get selected criteria
+    final selectedCriteria = _getSelectedCriteria();
+
+    // Filter crops that match ALL selected criteria
+    final matchingCrops = MockData.mockCrops
+        .where(_matchesAllSelectedCriteria)
         .toList();
+
+    // Sort by duration (shortest first)
+    matchingCrops.sort((a, b) => a.maxDurationDays.compareTo(b.maxDurationDays));
 
     return Scaffold(
       backgroundColor: AgriKeepTheme.backgroundColor,
@@ -296,35 +423,65 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                   children: [
                     // Results summary card
                     CustomCard(
-                      backgroundColor: const Color(0xFFF0FDF4),
+                      backgroundColor: matchingCrops.isNotEmpty
+                          ? const Color(0xFFF0FDF4)
+                          : const Color(0xFFFEF2F2),
                       border: Border.all(
-                        color: const Color(0xFFBBF7D0),
+                        color: matchingCrops.isNotEmpty
+                            ? const Color(0xFFBBF7D0)
+                            : const Color(0xFFFECACA),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Recommendations Ready!',
+                            matchingCrops.isNotEmpty
+                                ? 'Matching Crops Found!'
+                                : 'No Matching Crops',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF166534),
+                              color: matchingCrops.isNotEmpty
+                                  ? const Color(0xFF166534)
+                                  : const Color(0xFFDC2626),
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Based on  ${_formData.soilType} soil, $_sunlightExposure sunlight, and ${_formData.waterAvailability.toLowerCase()} water',
+                            'Selected Criteria (ALL must match):',
                             style: TextStyle(
                               fontSize: 14,
-                              color: const Color(0xFF166534),
+                              fontWeight: FontWeight.w500,
+                              color: matchingCrops.isNotEmpty
+                                  ? const Color(0xFF166534)
+                                  : const Color(0xFFDC2626),
                             ),
                           ),
                           const SizedBox(height: 4),
+                          if (selectedCriteria.isNotEmpty)
+                            ...selectedCriteria.map((criterion) => Padding(
+                              padding: const EdgeInsets.only(left: 8.0, top: 2.0),
+                              child: Text(
+                                '• $criterion',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: matchingCrops.isNotEmpty
+                                      ? const Color(0xFF166534)
+                                      : const Color(0xFFDC2626),
+                                ),
+                              ),
+                            )).toList(),
+                          const SizedBox(height: 8),
                           Text(
-                            'Current Season: $_currentSeason',
+                            matchingCrops.isNotEmpty
+                                ? 'Found ${matchingCrops.length} crop(s) matching ALL criteria'
+                                : 'No crops match ALL your selected criteria',
                             style: TextStyle(
-                              fontSize: 14,
-                              color: const Color(0xFF166534),
+                              fontSize: 12,
+                              color: matchingCrops.isNotEmpty
+                                  ? const Color(0xFF166534)
+                                  : const Color(0xFFDC2626),
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
                         ],
@@ -332,29 +489,29 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Results title
-                    Text(
-                      'Top Recommendations for You',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AgriKeepTheme.textPrimary,
+                    if (matchingCrops.isNotEmpty) ...[
+                      // Results title
+                      Text(
+                        'Recommended Crops',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AgriKeepTheme.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Crops suitable for your conditions',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AgriKeepTheme.textSecondary,
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sorted by growing duration (shortest first)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AgriKeepTheme.textSecondary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Crop recommendations
-                    if (filteredCrops.isNotEmpty)
+                      // Crop recommendations
                       Column(
-                        children: filteredCrops.map((crop) {
+                        children: matchingCrops.map((crop) {
                           return Column(
                             children: [
                               CropCard(
@@ -377,20 +534,51 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                             ],
                           );
                         }).toList(),
-                      )
-                    else
-                      CustomCard(
+                      ),
+                    ] else ...[
+                      // No results message
+                      Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            'No crops found matching your current season ($_currentSeason). Try different conditions.',
-                            style: TextStyle(
-                              color: AgriKeepTheme.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
+                          padding: const EdgeInsets.symmetric(vertical: 40.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: AgriKeepTheme.textSecondary,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No Crops Match ALL Your Criteria',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: AgriKeepTheme.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                child: Text(
+                                  'We couldn\'t find any crops that match ALL your selected requirements.\n\n'
+                                      'Try adjusting your criteria:\n'
+                                      '• Select fewer criteria\n'
+                                      '• Choose different options\n'
+                                      '• Select a longer duration range',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AgriKeepTheme.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
                           ),
                         ),
                       ),
+                    ],
 
                     // New recommendations button
                     const SizedBox(height: 16),

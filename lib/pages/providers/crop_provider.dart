@@ -56,9 +56,6 @@ class CropProvider with ChangeNotifier {
 
       // Filter crops based on input
       _recommendedCrops = _crops.where((crop) {
-        // Match season
-        final seasonMatch = crop.season.toLowerCase().contains(input.season.toLowerCase()) ||
-            input.season.toLowerCase().contains(crop.season.toLowerCase());
 
         // Match water requirement
         final waterMatch = crop.waterRequirement.toLowerCase() ==
@@ -69,15 +66,9 @@ class CropProvider with ChangeNotifier {
         soil.toLowerCase().contains(input.soilType.toLowerCase()) ||
             input.soilType.toLowerCase().contains(soil.toLowerCase()));
 
-        return seasonMatch && waterMatch && soilMatch;
+        return waterMatch && soilMatch;
       }).toList();
 
-      // If no exact matches, relax the criteria
-      if (_recommendedCrops.isEmpty) {
-        _recommendedCrops = _crops.where((crop) {
-          return crop.season.toLowerCase().contains(input.season.toLowerCase());
-        }).toList();
-      }
 
       // Limit to top 5 recommendations
       if (_recommendedCrops.length > 5) {
