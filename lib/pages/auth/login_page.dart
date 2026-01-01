@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:agrikeep/widgets/custom_button.dart';
 import 'package:agrikeep/widgets/input_field.dart';
 import 'package:agrikeep/utils/theme.dart';
+import 'package:provider/provider.dart';
+import 'package:agrikeep/pages/providers/auth_provider.dart';
+
 
 class LoginPage extends StatefulWidget {
   final VoidCallback onLogin;
@@ -33,16 +36,27 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) return;
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
+    final authProvider = context.read<AuthProvider>();
 
-      setState(() => _isLoading = false);
-      widget.onLogin();
+    setState(() => _isLoading = true);
+
+    await authProvider.signInWithUsernameOrEmail(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
+
+    setState(() => _isLoading = false);
+
+    if (authProvider.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(authProvider.error!)),
+      );
+      authProvider.clearError();
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -17,6 +17,7 @@ import 'package:agrikeep/pages/crop_information_page.dart';
 import 'package:agrikeep/pages/profile_page.dart';
 import 'package:agrikeep/pages/settings_page.dart';
 import 'package:agrikeep/pages/providers/auth_provider.dart';
+import 'package:agrikeep/pages/weekly_act_page.dart'; // Add this line
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -40,8 +41,10 @@ class _AppState extends State<App> {
   }
 
   void _handleLogin() {
-    _setAppState(AppState.app);
+    // Do nothing here
+    // Firebase Auth + AuthProvider will handle state
   }
+
 
   void _handleSignUp() {
     _setAppState(AppState.profileSetup);
@@ -62,25 +65,40 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) {
     print("🎨 Building App with state: $_appState, page: $_currentPage");
 
-    // 1. SPLASH SCREEN - Show for 2 seconds, then check auth
+    // 🔑 STEP 3 — LISTEN TO AUTH PROVIDER (ADD THIS BLOCK)
+    final authProvider = context.watch<AuthProvider>();
+
+    if (authProvider.isAuthenticated && _appState != AppState.app) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _setAppState(AppState.app);
+      });
+    }
+
+    if (!authProvider.isAuthenticated &&
+        (_appState == AppState.app || _appState == AppState.welcome)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _setAppState(AppState.login);
+      });
+    }
+    // 🔑 END STEP 3
+
+    // 1. SPLASH SCREEN
     if (_appState == AppState.splash) {
       return SplashScreen(
         onComplete: () {
-          print("✅ Splash screen complete");
-          // Wait for next frame to ensure providers are ready
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
-            print("🔐 Auth status: ${authProvider.isAuthenticated}");
+            final authProvider = context.read<AuthProvider>();
 
             if (authProvider.isAuthenticated) {
               _setAppState(AppState.app);
             } else {
-              _setAppState(AppState.welcome);
+              _setAppState(AppState.login);
             }
           });
         },
       );
     }
+
 
     // 2. WELCOME PAGE
     if (_appState == AppState.welcome) {
@@ -149,15 +167,10 @@ class _AppState extends State<App> {
           onHarvest: () => _setCurrentPage('harvest-entry'),
         );
       case 'weekly-activity':
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Weekly Activity'),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => _setCurrentPage('cultivation-detail'),
-            ),
-          ),
-          body: const Center(child: Text('Weekly Activity Page')),
+        return WeeklyActivityPage(
+          onBack: () => _setCurrentPage('cultivation-detail'),
+          cultivationId: 'TEMPORARY_ID_001', // ⚠️ TEMPORARY - You'll need real data
+          cropName: 'Rice', // ⚠️ TEMPORARY - You'll need real data
         );
       case 'harvest-entry':
         return HarvestEntryPage(

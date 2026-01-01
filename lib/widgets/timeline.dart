@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:agrikeep/utils/theme.dart';
+import 'package:agrikeep/models/activity.dart'; // ← ADD THIS IMPORT
 
 class TimelineItem {
   final String date;
@@ -13,7 +14,26 @@ class TimelineItem {
     required this.description,
     required this.completed,
   });
+
+  // Add this factory method
+  factory TimelineItem.fromActivity(Activity activity) {
+    String description = activity.generalNotes ?? 'No additional notes';
+    if (activity.fertilizerType != null && activity.fertilizerType != 'None') {
+      description += '\nFertilizer: ${activity.fertilizerType}';
+      if (activity.fertilizerAmount != null) {
+        description += ' (${activity.fertilizerAmount}kg)';
+      }
+    }
+
+    return TimelineItem(
+      date: '${activity.date.year}-${activity.date.month.toString().padLeft(2, '0')}-${activity.date.day.toString().padLeft(2, '0')}',
+      title: activity.activityType,
+      description: description,
+      completed: true,
+    );
+  }
 }
+
 
 class Timeline extends StatelessWidget {
   final List<TimelineItem> items;

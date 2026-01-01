@@ -125,7 +125,7 @@ class StatCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              fontSize: 24,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               color: AgriKeepTheme.textPrimary,
             ),
@@ -134,7 +134,7 @@ class StatCard extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 11,
               color: AgriKeepTheme.textSecondary,
             ),
           ),

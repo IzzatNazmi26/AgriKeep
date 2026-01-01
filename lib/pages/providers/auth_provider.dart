@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class AuthProvider with ChangeNotifier {
   User? _user;
@@ -18,6 +20,49 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     });
   }
+
+  Future<void> signInWithUsernameOrEmail(
+      String identifier,
+      String password,
+      ) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      String email = identifier.trim();
+
+      // If input does NOT look like email, treat as username
+      if (!identifier.contains('@')) {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('username', isEqualTo: identifier.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (snapshot.docs.isEmpty) {
+          throw FirebaseAuthException(
+            code: 'user-not-found',
+          );
+        }
+
+        email = snapshot.docs.first['email'];
+      }
+
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      _error = _getErrorMessage(e.code);
+    } catch (e) {
+      _error = 'An unexpected error occurred';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
 
   Future<void> signInWithEmailPassword(String email, String password) async {
     try {

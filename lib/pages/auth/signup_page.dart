@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:agrikeep/widgets/custom_button.dart';
 import 'package:agrikeep/widgets/input_field.dart';
 import 'package:agrikeep/utils/theme.dart';
+import 'package:provider/provider.dart';
+import 'package:agrikeep/pages/providers/auth_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+//import 'package:firebase_auth/firebase_auth.dart';
+
 
 class SignUpPage extends StatefulWidget {
   final VoidCallback onSignUp;
@@ -19,7 +24,7 @@ class SignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -31,7 +36,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -41,26 +46,59 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> _handleSignUp() async {
-    if (_formKey.currentState!.validate()) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Passwords do not match'),
-            backgroundColor: AgriKeepTheme.errorColor,
-          ),
-        );
-        return;
-      }
+    if (!_formKey.currentState!.validate()) return;
 
-      setState(() => _isLoading = true);
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match'),
+          backgroundColor: AgriKeepTheme.errorColor,
+        ),
+      );
+      return;
+    }
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
+    final authProvider = context.read<AuthProvider>();
 
-      setState(() => _isLoading = false);
-      widget.onSignUp();
+    setState(() => _isLoading = true);
+
+    // 1️⃣ Create Firebase Auth account
+    await authProvider.signUpWithEmailPassword(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
+
+    setState(() => _isLoading = false);
+
+    if (authProvider.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(authProvider.error!)),
+      );
+      authProvider.clearError();
+      return;
+    }
+
+    // 2️⃣ Save extra user data to Firestore
+    final user = authProvider.user;
+    if (user != null) {
+      final username = _usernameController.text.trim().toLowerCase();
+
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({
+        'email': user.email,
+        'username': username,
+        'farmName': _farmNameController.text.trim(),
+        'location': _locationController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -111,18 +149,25 @@ class _SignUpPageState extends State<SignUpPage> {
                 child: Column(
                   children: [
                     InputField(
-                      label: 'Full Name',
-                      controller: _fullNameController,
-                      hintText: 'Enter your full name',
+                      label: 'Username',
+                      controller: _usernameController,
+                      hintText: 'Choose a unique username',
                       required: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your full name';
+                          return 'Please enter a username';
+                        }
+                        if (value.contains(' ')) {
+                          return 'Username cannot contain spaces';
+                        }
+                        if (value.length < 3) {
+                          return 'Username must be at least 3 characters';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
+
                     InputField(
                       label: 'Email Address',
                       controller: _emailController,

@@ -5,8 +5,13 @@ import 'package:agrikeep/widgets/card.dart';
 import 'package:agrikeep/widgets/custom_button.dart';
 import 'package:agrikeep/widgets/timeline.dart';
 import 'package:agrikeep/utils/theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Add this import
+import 'package:firebase_auth/firebase_auth.dart'; // Add this import
+import 'package:agrikeep/models/activity.dart'; // Add this import
 
-class CultivationDetailPage extends StatelessWidget {
+
+
+class CultivationDetailPage extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback onAddActivity;
   final VoidCallback onHarvest;
@@ -19,45 +24,127 @@ class CultivationDetailPage extends StatelessWidget {
   });
 
   @override
+  State<CultivationDetailPage> createState() => _CultivationDetailPageState();
+}
+
+class _CultivationDetailPageState extends State<CultivationDetailPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final User? _user = FirebaseAuth.instance.currentUser;
+
+  List<TimelineItem> _activities = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActivities();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh when returning to this page
+    _loadActivities();
+  }
+
+  Future<void> _loadActivities() async {
+    print('🔍 Loading activities...');
+    print('   User ID: ${_user?.uid}');
+    print('   Cultivation ID: TEMPORARY_ID_001');
+
+    if (_user == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Use the same ID as WeeklyActivityPage
+      final cultivationId = 'TEMPORARY_ID_001';
+
+      final querySnapshot = await _firestore
+          .collection('activities')
+          .where('userId', isEqualTo: _user!.uid)
+          .where('cultivationId', isEqualTo: cultivationId)
+          .orderBy('date', descending: true)
+
+          .get();
+
+      print('   Found ${querySnapshot.docs.length} activities');
+
+      final activities = querySnapshot.docs.map((doc) {
+        return Activity.fromFirestore(doc.id, doc.data());
+      }).toList();
+
+      // Convert to TimelineItems
+      final timelineItems = activities.map((activity) {
+        String description = activity.generalNotes ?? 'No additional notes';
+        if (activity.fertilizerType != null && activity.fertilizerType != 'None') {
+          description += '\nFertilizer: ${activity.fertilizerType}';
+          if (activity.fertilizerAmount != null) {
+            description += ' (${activity.fertilizerAmount}kg)';
+          }
+        }
+
+        return TimelineItem(
+          date: '${activity.date.year}-${activity.date.month.toString().padLeft(2, '0')}-${activity.date.day.toString().padLeft(2, '0')}',
+          title: activity.activityType,
+          description: description,
+          completed: true,
+        );
+      }).toList();
+
+      setState(() {
+        _activities = timelineItems;
+        _isLoading = false;
+      });
+
+    } catch (e) {
+      print('❌ Error loading activities: $e');
+      setState(() => _isLoading = false);
+
+      // Fallback to hardcoded activities if Firebase fails
+      _activities = [
+        TimelineItem(
+          date: '2024-02-28',
+          title: 'Fertilizer Applied',
+          description: 'NPK fertilizer - 50kg applied to field',
+          completed: true,
+        ),
+        TimelineItem(
+          date: '2024-02-20',
+          title: 'Pest Control',
+          description: 'Sprayed organic pesticide for leaf hoppers',
+          completed: true,
+        ),
+        TimelineItem(
+          date: '2024-02-10',
+          title: 'Watering',
+          description: 'Maintained 2-3 inches water level',
+          completed: true,
+        ),
+        TimelineItem(
+          date: '2024-01-15',
+          title: 'Planting',
+          description: 'Planted rice seedlings in 2 hectares',
+          completed: true,
+        ),
+      ];
+    }
+  }
+
+  // Crop data (hardcoded for now)
+  final _CropDetail cropData = _CropDetail(
+    name: 'Rice',
+    plantingDate: DateTime(2024, 1, 15),
+    expectedHarvest: DateTime(2024, 5, 15),
+    daysElapsed: 45,
+    totalDays: 120,
+    status: 'Growing',
+  );
+
+  final progress = (45 / 120) * 100; // 45 days elapsed / 120 total days
+
+  @override
   Widget build(BuildContext context) {
-    final cropData = _CropDetail(
-      name: 'Rice',
-      plantingDate: DateTime(2024, 1, 15),
-      expectedHarvest: DateTime(2024, 5, 15),
-      daysElapsed: 45,
-      totalDays: 120,
-      status: 'Growing',
-    );
-
-    final activities = [
-      TimelineItem(
-        date: '2024-02-28',
-        title: 'Fertilizer Applied',
-        description: 'NPK fertilizer - 50kg applied to field',
-        completed: true,
-      ),
-      TimelineItem(
-        date: '2024-02-20',
-        title: 'Pest Control',
-        description: 'Sprayed organic pesticide for leaf hoppers',
-        completed: true,
-      ),
-      TimelineItem(
-        date: '2024-02-10',
-        title: 'Watering',
-        description: 'Maintained 2-3 inches water level',
-        completed: true,
-      ),
-      TimelineItem(
-        date: '2024-01-15',
-        title: 'Planting',
-        description: 'Planted rice seedlings in 2 hectares',
-        completed: true,
-      ),
-    ];
-
-    final progress = (cropData.daysElapsed / cropData.totalDays) * 100;
-
     return Scaffold(
       backgroundColor: AgriKeepTheme.backgroundColor,
       body: SafeArea(
@@ -65,7 +152,7 @@ class CultivationDetailPage extends StatelessWidget {
           children: [
             AppHeader(
               title: 'Cultivation Details',
-              onBack: onBack,
+              onBack: widget.onBack,
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -227,7 +314,7 @@ class CultivationDetailPage extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          onPressed: onAddActivity,
+                          onPressed: widget.onAddActivity,
                           icon: const Icon(Icons.add),
                           style: IconButton.styleFrom(
                             backgroundColor: AgriKeepTheme.primaryColor,
@@ -240,8 +327,45 @@ class CultivationDetailPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
+// Timeline Card with Loading/Empty states
                     CustomCard(
-                      child: Timeline(items: activities),
+                      child: _isLoading
+                          ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                          : _activities.isEmpty
+                          ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.list,
+                              size: 48,
+                              color: AgriKeepTheme.textTertiary,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No activities yet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AgriKeepTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Log your first activity to see it here',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AgriKeepTheme.textTertiary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                          : Timeline(items: _activities),
                     ),
                     const SizedBox(height: 24),
 
@@ -250,14 +374,14 @@ class CultivationDetailPage extends StatelessWidget {
                       children: [
                         CustomButton(
                           text: 'Log Weekly Activity',
-                          onPressed: onAddActivity,
+                          onPressed: widget.onAddActivity,
                           variant: ButtonVariant.secondary,
                           fullWidth: true,
                         ),
                         const SizedBox(height: 12),
                         CustomButton(
                           text: 'Record Harvest',
-                          onPressed: onHarvest,
+                          onPressed: widget.onHarvest,
                           variant: ButtonVariant.primary,
                           fullWidth: true,
                         ),
