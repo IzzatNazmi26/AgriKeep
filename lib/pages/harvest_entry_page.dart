@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:agrikeep/widgets/header.dart';
 import 'package:agrikeep/widgets/card.dart';
 import 'package:agrikeep/widgets/custom_button.dart';
@@ -22,15 +23,11 @@ class HarvestEntryPage extends StatefulWidget {
 class _HarvestEntryPageState extends State<HarvestEntryPage> {
   final _formKey = GlobalKey<FormState>();
   final Map<String, dynamic> _formData = {
-    'cropName': 'Rice',
+    'cropName': 'Cherry Tomato', // Default to greenhouse crop
     'harvestDate': '',
-    'quantityHarvested': '',
-    'unit': 'tons',
-    'quality': '',
-    'notes': '',
+    'quantityKg': '',
+    'note': '',
   };
-
-  final double _expectedYield = 4.5; // From planting data
 
   @override
   void initState() {
@@ -42,16 +39,24 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
 
   void _handleSubmit() {
     if (_formKey.currentState!.validate()) {
+      // Here you would save to Firebase
+      print('Harvest Data: $_formData');
       widget.onSave();
     }
   }
 
-  double get _actualYield {
-    return double.tryParse(_formData['quantityHarvested']) ?? 0.0;
-  }
-
-  double get _performancePercentage {
-    return _expectedYield > 0 ? ((_actualYield / _expectedYield) * 100) : 0.0;
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _formData['harvestDate'] = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
   }
 
   @override
@@ -70,7 +75,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Welcome card
+                    // Simple info card
                     CustomCard(
                       backgroundColor: const Color(0xFFF0FDF4),
                       border: Border.all(color: const Color(0xFFBBF7D0)),
@@ -84,7 +89,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
-                              Icons.trending_up,
+                              Icons.agriculture,
                               size: 24,
                               color: AgriKeepTheme.primaryColor,
                             ),
@@ -95,7 +100,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Ready to Harvest!',
+                                  'Record Your Harvest',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -104,7 +109,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Record your harvest details below',
+                                  'Enter harvested quantity in kilograms',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: const Color(0xFF166534),
@@ -118,32 +123,112 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Form
+                    // Simple Form
                     Form(
                       key: _formKey,
                       child: Column(
                         children: [
-                          InputField(
-                            label: 'Crop Name',
-                            value: _formData['cropName'],
-                            onChanged: (value) => setState(() => _formData['cropName'] = value),
-                            required: true,
+                          // Crop Name (auto-linked, read-only)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AgriKeepTheme.borderColor),
+                              color: Colors.white,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Crop',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AgriKeepTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formData['cropName'],
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: AgriKeepTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 16),
-                          InputField(
-                            label: 'Harvest Date',
-                            value: _formData['harvestDate'],
-                            onChanged: (value) => setState(() => _formData['harvestDate'] = value),
-                            required: true,
+
+                          // Harvest Date
+                          Text(
+                            'Harvest Date *',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AgriKeepTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: () => _selectDate(context),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AgriKeepTheme.borderColor),
+                                color: Colors.white,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _formData['harvestDate'],
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: AgriKeepTheme.textPrimary,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: 20,
+                                    color: AgriKeepTheme.textSecondary,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 16),
-                          InputField(
-                            label: 'Quantity Harvested',
-                            value: _formData['quantityHarvested'],
-                            onChanged: (value) => setState(() => _formData['quantityHarvested'] = value),
-                            keyboardType: TextInputType.number,
-                            unit: _formData['unit'],
-                            required: true,
+
+                          // Quantity in kg (Required)
+                          Text(
+                            'Quantity Harvested (kg) *',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AgriKeepTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            keyboardType: TextInputType.numberWithOptions(decimal: true),
+                            decoration: InputDecoration(
+                              hintText: 'Enter quantity in kilograms',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: AgriKeepTheme.borderColor),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              suffixText: 'kg',
+                            ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter quantity';
@@ -151,122 +236,41 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                               if (double.tryParse(value) == null) {
                                 return 'Please enter a valid number';
                               }
+                              if (double.parse(value) <= 0) {
+                                return 'Quantity must be greater than 0';
+                              }
                               return null;
                             },
-                          ),
-                          const SizedBox(height: 16),
-                          InputField(
-                            label: 'Quality Grade',
-                            value: _formData['quality'],
-                            onChanged: (value) => setState(() => _formData['quality'] = value),
-                            options: [
-                              'Excellent (Grade A)',
-                              'Good (Grade B)',
-                              'Fair (Grade C)',
-                              'Poor (Grade D)',
-                            ],
-                            selectedOption: _formData['quality'].isNotEmpty ? _formData['quality'] : null,
-                            onOptionSelected: (value) => setState(() => _formData['quality'] = value ?? ''),
-                            required: true,
+                            onChanged: (value) => _formData['quantityKg'] = value,
                           ),
                           const SizedBox(height: 16),
 
-                          // Performance indicator
-                          if (_actualYield > 0)
-                            CustomCard(
-                              backgroundColor: _performancePercentage >= 90
-                                  ? const Color(0xFFF0FDF4)
-                                  : _performancePercentage >= 70
-                                  ? const Color(0xFFFEF3C7)
-                                  : const Color(0xFFFEF2F2),
-                              border: Border.all(
-                                color: _performancePercentage >= 90
-                                    ? const Color(0xFFBBF7D0)
-                                    : _performancePercentage >= 70
-                                    ? const Color(0xFFFDE68A)
-                                    : const Color(0xFFFECACA),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Performance vs Expected',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: AgriKeepTheme.textPrimary,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${_performancePercentage.toStringAsFixed(1)}%',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: _performancePercentage >= 90
-                                              ? AgriKeepTheme.successColor
-                                              : _performancePercentage >= 70
-                                              ? AgriKeepTheme.warningColor
-                                              : AgriKeepTheme.errorColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Expected: $_expectedYield ${_formData['unit']} | Actual: $_actualYield ${_formData['unit']}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: AgriKeepTheme.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          // Optional Note
+                          Text(
+                            'Note (Optional)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AgriKeepTheme.textPrimary,
                             ),
-                          const SizedBox(height: 16),
-
-                          // Harvest notes
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Harvest Notes',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: AgriKeepTheme.textPrimary,
-                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            maxLines: 2,
+                            decoration: InputDecoration(
+                              hintText: 'Short note (e.g., "Good yield", "Smaller size than usual")',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: AgriKeepTheme.borderColor),
                               ),
-                              const SizedBox(height: 8),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: AgriKeepTheme.borderColor,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: TextField(
-                                  maxLines: 4,
-                                  decoration: InputDecoration(
-                                    hintText: 'Any observations about the harvest (weather conditions, challenges, etc.)...',
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.all(12),
-                                    hintStyle: TextStyle(
-                                      color: AgriKeepTheme.textTertiary,
-                                    ),
-                                  ),
-                                  onChanged: (value) => _formData['notes'] = value,
-                                ),
-                              ),
-                            ],
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            onChanged: (value) => _formData['note'] = value,
                           ),
                           const SizedBox(height: 32),
 
-                          // Save button
+                          // Save Button
                           CustomButton(
                             text: 'Save Harvest Record',
                             onPressed: _handleSubmit,

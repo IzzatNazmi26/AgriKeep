@@ -4,15 +4,11 @@ class Activity {
   final String id;
   final String userId;
   final String cultivationId;
-  final String activityType;
-  final DateTime date;
-  final String? fertilizerType;
-  final String? fertilizerAmount;
-  final String? wateringFrequency;
-  final String? pestIssues;
-  final String? diseaseNotes;
-  final String? generalNotes;
-  final List<String>? photoUrls;
+  final String activityType; // Planting, Watering, Fertilizer Application, etc.
+  final DateTime activityDate;
+  final String? fertilizerType; // Only if activityType == "Fertilizer Application"
+  final String? wateringFrequency; // Only if activityType == "Watering"
+  final String? note; // Optional short note
   final DateTime createdAt;
 
   Activity({
@@ -20,14 +16,10 @@ class Activity {
     required this.userId,
     required this.cultivationId,
     required this.activityType,
-    required this.date,
+    required this.activityDate,
     this.fertilizerType,
-    this.fertilizerAmount,
     this.wateringFrequency,
-    this.pestIssues,
-    this.diseaseNotes,
-    this.generalNotes,
-    this.photoUrls,
+    this.note,
     required this.createdAt,
   });
 
@@ -37,14 +29,10 @@ class Activity {
       'userId': userId,
       'cultivationId': cultivationId,
       'activityType': activityType,
-      'date': date.millisecondsSinceEpoch,
+      'activityDate': activityDate.millisecondsSinceEpoch,
       'fertilizerType': fertilizerType,
-      'fertilizerAmount': fertilizerAmount,
       'wateringFrequency': wateringFrequency,
-      'pestIssues': pestIssues,
-      'diseaseNotes': diseaseNotes,
-      'generalNotes': generalNotes,
-      'photoUrls': photoUrls,
+      'note': note,
       'createdAt': createdAt.millisecondsSinceEpoch,
     };
   }
@@ -55,16 +43,10 @@ class Activity {
       userId: data['userId'] ?? '',
       cultivationId: data['cultivationId'] ?? '',
       activityType: data['activityType'] ?? '',
-      date: DateTime.fromMillisecondsSinceEpoch(data['date'] ?? 0),
+      activityDate: DateTime.fromMillisecondsSinceEpoch(data['activityDate'] ?? 0),
       fertilizerType: data['fertilizerType'],
-      fertilizerAmount: data['fertilizerAmount'],
       wateringFrequency: data['wateringFrequency'],
-      pestIssues: data['pestIssues'],
-      diseaseNotes: data['diseaseNotes'],
-      generalNotes: data['generalNotes'],
-      photoUrls: data['photoUrls'] != null
-          ? List<String>.from(data['photoUrls'])
-          : null,
+      note: data['note'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(data['createdAt'] ?? 0),
     );
   }
@@ -75,16 +57,10 @@ class Activity {
       userId: map['userId'] ?? '',
       cultivationId: map['cultivationId'] ?? '',
       activityType: map['activityType'] ?? '',
-      date: DateTime.fromMillisecondsSinceEpoch(map['date'] ?? 0),
+      activityDate: DateTime.fromMillisecondsSinceEpoch(map['activityDate'] ?? 0),
       fertilizerType: map['fertilizerType'],
-      fertilizerAmount: map['fertilizerAmount'],
       wateringFrequency: map['wateringFrequency'],
-      pestIssues: map['pestIssues'],
-      diseaseNotes: map['diseaseNotes'],
-      generalNotes: map['generalNotes'],
-      photoUrls: map['photoUrls'] != null
-          ? List<String>.from(map['photoUrls'])
-          : null,
+      note: map['note'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
     );
   }
@@ -94,14 +70,10 @@ class Activity {
     String? userId,
     String? cultivationId,
     String? activityType,
-    DateTime? date,
+    DateTime? activityDate,
     String? fertilizerType,
-    String? fertilizerAmount,
     String? wateringFrequency,
-    String? pestIssues,
-    String? diseaseNotes,
-    String? generalNotes,
-    List<String>? photoUrls,
+    String? note,
     DateTime? createdAt,
   }) {
     return Activity(
@@ -109,20 +81,16 @@ class Activity {
       userId: userId ?? this.userId,
       cultivationId: cultivationId ?? this.cultivationId,
       activityType: activityType ?? this.activityType,
-      date: date ?? this.date,
+      activityDate: activityDate ?? this.activityDate,
       fertilizerType: fertilizerType ?? this.fertilizerType,
-      fertilizerAmount: fertilizerAmount ?? this.fertilizerAmount,
       wateringFrequency: wateringFrequency ?? this.wateringFrequency,
-      pestIssues: pestIssues ?? this.pestIssues,
-      diseaseNotes: diseaseNotes ?? this.diseaseNotes,
-      generalNotes: generalNotes ?? this.generalNotes,
-      photoUrls: photoUrls ?? this.photoUrls,
+      note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
   @override
   String toString() {
-    return 'Activity(id: $id, type: $activityType, date: $date)';
+    return 'Activity(id: $id, type: $activityType, date: $activityDate)';
   }
 }

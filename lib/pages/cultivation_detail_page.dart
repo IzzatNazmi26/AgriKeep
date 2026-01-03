@@ -64,7 +64,7 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
           .collection('activities')
           .where('userId', isEqualTo: _user!.uid)
           .where('cultivationId', isEqualTo: cultivationId)
-          .orderBy('date', descending: true)
+          .orderBy('activityDate', descending: true)
 
           .get();
 
@@ -74,23 +74,31 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
         return Activity.fromFirestore(doc.id, doc.data());
       }).toList();
 
-      // Convert to TimelineItems
+      // Convert to TimelineItems - UPDATED FOR NEW MODEL
       final timelineItems = activities.map((activity) {
-        String description = activity.generalNotes ?? 'No additional notes';
-        if (activity.fertilizerType != null && activity.fertilizerType != 'None') {
+        // Use note instead of generalNotes
+        String description = activity.note ?? 'No additional notes';
+
+        // Add fertilizer info if available
+        if (activity.activityType == 'Fertilizer Application' && activity.fertilizerType != null) {
           description += '\nFertilizer: ${activity.fertilizerType}';
-          if (activity.fertilizerAmount != null) {
-            description += ' (${activity.fertilizerAmount}kg)';
-          }
+          // Note: fertilizerAmount removed per spec
+        }
+
+        // Add watering info if available
+        if (activity.activityType == 'Watering' && activity.wateringFrequency != null) {
+          description += '\nFrequency: ${activity.wateringFrequency}';
         }
 
         return TimelineItem(
-          date: '${activity.date.year}-${activity.date.month.toString().padLeft(2, '0')}-${activity.date.day.toString().padLeft(2, '0')}',
+          // Use activityDate instead of date
+          date: '${activity.activityDate.year}-${activity.activityDate.month.toString().padLeft(2, '0')}-${activity.activityDate.day.toString().padLeft(2, '0')}',
           title: activity.activityType,
           description: description,
           completed: true,
         );
       }).toList();
+
 
       setState(() {
         _activities = timelineItems;
@@ -131,17 +139,17 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
     }
   }
 
-  // Crop data (hardcoded for now)
+  // Crop data (hardcoded for now) - Updated for greenhouse
   final _CropDetail cropData = _CropDetail(
-    name: 'Rice',
+    name: 'Cherry Tomato', // Changed from Rice
     plantingDate: DateTime(2024, 1, 15),
-    expectedHarvest: DateTime(2024, 5, 15),
+    expectedHarvest: DateTime(2024, 4, 15), // 90 days from planting
     daysElapsed: 45,
-    totalDays: 120,
+    totalDays: 90, // Cherry tomato typical duration
     status: 'Growing',
   );
 
-  final progress = (45 / 120) * 100; // 45 days elapsed / 120 total days
+  final progress = (45 / 90) * 100; // Updated for 90-day crop
 
   @override
   Widget build(BuildContext context) {

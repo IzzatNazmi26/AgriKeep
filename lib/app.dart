@@ -18,6 +18,7 @@ import 'package:agrikeep/pages/profile_page.dart';
 import 'package:agrikeep/pages/settings_page.dart';
 import 'package:agrikeep/pages/providers/auth_provider.dart';
 import 'package:agrikeep/pages/weekly_act_page.dart'; // Add this line
+import 'package:agrikeep/pages/add_cultivation_page.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -166,6 +167,11 @@ class _AppState extends State<App> {
           onAddActivity: () => _setCurrentPage('weekly-activity'),
           onHarvest: () => _setCurrentPage('harvest-entry'),
         );
+      // In app.dart, inside _buildMainApp() switch statement
+      case 'add-cultivation':
+        return AddCultivationPage(
+          onBack: () => _setCurrentPage('cultivation'),
+        );
       case 'weekly-activity':
         return WeeklyActivityPage(
           onBack: () => _setCurrentPage('cultivation-detail'),
@@ -175,7 +181,7 @@ class _AppState extends State<App> {
       case 'harvest-entry':
         return HarvestEntryPage(
           onBack: () => _setCurrentPage('cultivation-detail'),
-          onSave: () => _setCurrentPage('cultivation'),
+          onSave: () => _setCurrentPage('cultivation-detail'),
         );
       case 'records':
         return RecordsPage(
@@ -193,9 +199,12 @@ class _AppState extends State<App> {
           onNavigate: _setCurrentPage,
         );
       case 'settings':
-        return SettingsPage(onBack: () => _setCurrentPage('profile'));
+        return SettingsPage(onBack: () => _setCurrentPage('profile')
+        );
       default:
-        return DashboardPage(onNavigate: _setCurrentPage);
+        return DashboardPage(onNavigate: _setCurrentPage
+        );
+
     }
   }
 }

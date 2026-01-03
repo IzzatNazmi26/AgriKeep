@@ -15,18 +15,20 @@ class TimelineItem {
     required this.completed,
   });
 
-  // Add this factory method
+  // Update this method in timeline.dart
   factory TimelineItem.fromActivity(Activity activity) {
-    String description = activity.generalNotes ?? 'No additional notes';
-    if (activity.fertilizerType != null && activity.fertilizerType != 'None') {
+    String description = activity.note ?? 'No additional notes';
+
+    if (activity.activityType == 'Fertilizer Application' && activity.fertilizerType != null) {
       description += '\nFertilizer: ${activity.fertilizerType}';
-      if (activity.fertilizerAmount != null) {
-        description += ' (${activity.fertilizerAmount}kg)';
-      }
+    }
+
+    if (activity.activityType == 'Watering' && activity.wateringFrequency != null) {
+      description += '\nFrequency: ${activity.wateringFrequency}';
     }
 
     return TimelineItem(
-      date: '${activity.date.year}-${activity.date.month.toString().padLeft(2, '0')}-${activity.date.day.toString().padLeft(2, '0')}',
+      date: '${activity.activityDate.year}-${activity.activityDate.month.toString().padLeft(2, '0')}-${activity.activityDate.day.toString().padLeft(2, '0')}',
       title: activity.activityType,
       description: description,
       completed: true,

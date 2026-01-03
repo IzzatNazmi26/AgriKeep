@@ -332,77 +332,77 @@ class MockData {
   ];
 
 
-  // Farm Profile
+  // Farm Profile - Updated for Malaysian greenhouse
   static final FarmProfile mockFarmProfile = FarmProfile(
     id: '1',
     userId: 'user123',
-    farmName: 'Green Valley Farm',
-    location: 'Punjab, India',
-    totalArea: 5.5,
+    farmName: 'Greenhouse Farm Malaysia',
+    location: 'Selangor, Malaysia',
+    totalArea: 0.5, // 0.5 hectare typical for smallholder
     soilType: 'Loamy',
-    irrigationType: 'Canal + Tube well',
-    preferredCrops: ['Rice', 'Wheat', 'Cotton'],
+    irrigationType: 'Drip Irrigation',
+    preferredCrops: ['Cherry Tomato', 'Cucumber', 'Capsicum'], // Your greenhouse crops
     createdAt: DateTime.now().subtract(const Duration(days: 365)),
     updatedAt: DateTime.now(),
   );
 
-  // Yield Records
+  // Yield Records - Updated for greenhouse crops
   static final List<YieldRecord> mockYields = [
     YieldRecord(
       id: '1',
       userId: 'user123',
       cropId: '1',
-      cropName: 'Rice',
-      quantity: 4.5,
-      unit: 'tons',
-      date: DateTime(2024, 1, 15),
+      cropName: 'Cherry Tomato',
+      quantity: 25.5,
+      unit: 'kg',
+      date: DateTime(2024, 2, 15),
       quality: 'Good',
-      expectedYield: 4.5,
-      performancePercentage: 100.0,
-      createdAt: DateTime(2024, 1, 15),
+      expectedYield: 20.0,
+      performancePercentage: 127.5,
+      createdAt: DateTime(2024, 2, 15),
     ),
     YieldRecord(
       id: '2',
       userId: 'user123',
       cropId: '2',
-      cropName: 'Wheat',
-      quantity: 3.2,
-      unit: 'tons',
-      date: DateTime(2024, 1, 10),
+      cropName: 'Cucumber',
+      quantity: 18.2,
+      unit: 'kg',
+      date: DateTime(2024, 2, 10),
       quality: 'Excellent',
-      expectedYield: 3.2,
-      performancePercentage: 100.0,
-      createdAt: DateTime(2024, 1, 10),
+      expectedYield: 15.0,
+      performancePercentage: 121.3,
+      createdAt: DateTime(2024, 2, 10),
     ),
   ];
 
-  // Sales Records
+  // Sales Records - Updated for greenhouse crops
   static final List<SalesRecord> mockSales = [
     SalesRecord(
       id: '1',
       userId: 'user123',
       cropId: '1',
-      cropName: 'Rice',
-      quantity: 4.5,
-      unit: 'tons',
-      pricePerUnit: 450,
-      totalAmount: 2025,
-      buyer: 'Local Market Co-op',
-      date: DateTime(2024, 1, 16),
-      createdAt: DateTime(2024, 1, 16),
+      cropName: 'Cherry Tomato',
+      quantity: 25.5,
+      unit: 'kg',
+      pricePerUnit: 8.0, // RM 8/kg
+      totalAmount: 204.0,
+      buyer: 'Local Market',
+      date: DateTime(2024, 2, 16),
+      createdAt: DateTime(2024, 2, 16),
     ),
     SalesRecord(
       id: '2',
       userId: 'user123',
       cropId: '2',
-      cropName: 'Wheat',
-      quantity: 3.2,
-      unit: 'tons',
-      pricePerUnit: 350,
-      totalAmount: 1120,
-      buyer: 'Regional Distributor',
-      date: DateTime(2024, 1, 12),
-      createdAt: DateTime(2024, 1, 12),
+      cropName: 'Cucumber',
+      quantity: 18.2,
+      unit: 'kg',
+      pricePerUnit: 3.0, // RM 3/kg
+      totalAmount: 54.6,
+      buyer: 'Vegetable Supplier',
+      date: DateTime(2024, 2, 11),
+      createdAt: DateTime(2024, 2, 11),
     ),
   ];
 

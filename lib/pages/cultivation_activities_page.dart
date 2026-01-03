@@ -20,33 +20,33 @@ class CultivationActivitiesPage extends StatelessWidget {
     final currentCrops = [
       _CropData(
         id: '1',
-        name: 'Rice',
+        name: 'Cherry Tomato',
         plantingDate: DateTime(2024, 1, 15),
         status: 'Growing',
-        progress: 38,
+        progress: 65,
         daysElapsed: 45,
-        totalDays: 120,
-        lastActivity: 'Fertilizer applied 3 days ago',
+        totalDays: 90, // Cherry tomato duration
+        lastActivity: 'Watering completed yesterday',
       ),
       _CropData(
         id: '2',
-        name: 'Wheat',
+        name: 'Cucumber',
         plantingDate: DateTime(2024, 1, 10),
         status: 'Growing',
-        progress: 62,
-        daysElapsed: 75,
-        totalDays: 120,
-        lastActivity: 'Watering completed 1 day ago',
+        progress: 80,
+        daysElapsed: 50,
+        totalDays: 60, // Cucumber duration
+        lastActivity: 'Fertilizer applied 2 days ago',
       ),
       _CropData(
         id: '3',
-        name: 'Cotton',
+        name: 'Capsicum',
         plantingDate: DateTime(2024, 2, 1),
-        status: 'Planted',
-        progress: 15,
-        daysElapsed: 25,
-        totalDays: 165,
-        lastActivity: 'Planted 25 days ago',
+        status: 'Flowering',
+        progress: 40,
+        daysElapsed: 30,
+        totalDays: 120, // Capsicum duration
+        lastActivity: 'General maintenance 5 days ago',
       ),
     ];
 

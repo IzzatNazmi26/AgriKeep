@@ -136,9 +136,9 @@ class DashboardPage extends StatelessWidget {
 
   Widget _buildCurrentCrops() {
     final List<Map<String, dynamic>> crops = [
-      {'name': 'Rice', 'status': 'Growing', 'progress': 38, 'daysLeft': 75,},
-      {'name': 'Wheat', 'status': 'Growing', 'progress': 62, 'daysLeft': 45},
-      {'name': 'Cotton', 'status': 'Planted', 'progress': 15, 'daysLeft': 150},
+      {'name': 'Cherry Tomato', 'status': 'Growing', 'progress': 65, 'daysLeft': 45},
+      {'name': 'Cucumber', 'status': 'Growing', 'progress': 80, 'daysLeft': 10},
+      {'name': 'Capsicum', 'status': 'Flowering', 'progress': 40, 'daysLeft': 90},
     ];
 
 
