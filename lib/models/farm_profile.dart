@@ -8,7 +8,7 @@ class FarmProfile {
   final String irrigationType;
   final List<String> preferredCrops;
   final String? waterSource;
-  final String? sunlightExposure;
+  //final String? sunlightExposure;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -23,7 +23,7 @@ class FarmProfile {
     required this.irrigationType,
     this.preferredCrops = const [],
     this.waterSource,
-    this.sunlightExposure,
+    //this.sunlightExposure,
 
     required this.createdAt,
     required this.updatedAt,
@@ -41,7 +41,7 @@ class FarmProfile {
       'irrigationType': irrigationType,
       'preferredCrops': preferredCrops,
       'waterSource': waterSource,
-      'sunlightExposure': sunlightExposure,
+      //'sunlightExposure': sunlightExposure,
 
       'createdAt': createdAt.millisecondsSinceEpoch,
       'updatedAt': updatedAt.millisecondsSinceEpoch,
@@ -60,7 +60,7 @@ class FarmProfile {
       irrigationType: data['irrigationType'] ?? '',
       preferredCrops: List<String>.from(data['preferredCrops'] ?? []),
       waterSource: data['waterSource'],
-      sunlightExposure: data['sunlightExposure'],
+      //sunlightExposure: data['sunlightExposure'],
 
       createdAt: DateTime.fromMillisecondsSinceEpoch(data['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(data['updatedAt'] ?? 0),
@@ -79,7 +79,7 @@ class FarmProfile {
       irrigationType: map['irrigationType'] ?? '',
       preferredCrops: List<String>.from(map['preferredCrops'] ?? []),
       waterSource: map['waterSource'],
-      sunlightExposure: map['sunlightExposure'],
+      //sunlightExposure: map['sunlightExposure'],
 
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
@@ -97,7 +97,7 @@ class FarmProfile {
     String? irrigationType,
     List<String>? preferredCrops,
     String? waterSource,
-    String? sunlightExposure,
+    //String? sunlightExposure,
 
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -112,7 +112,7 @@ class FarmProfile {
       irrigationType: irrigationType ?? this.irrigationType,
       preferredCrops: preferredCrops ?? this.preferredCrops,
       waterSource: waterSource ?? this.waterSource,
-      sunlightExposure: sunlightExposure ?? this.sunlightExposure,
+      //sunlightExposure: sunlightExposure ?? this.sunlightExposure,
 
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

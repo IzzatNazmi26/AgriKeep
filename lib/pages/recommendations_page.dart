@@ -34,7 +34,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
   );
 
   // Additional form fields
-  String _sunlightExposure = '';
+  // String _sunlightExposure = '';
   String? _selectedDurationRange;
 
   // Updated options
@@ -42,14 +42,14 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
     'Loamy',
     'Sandy',
     'Clay',
-    'Peat Soil'
+    //'Peat Soil'
   ];
 
-  final List<String> _sunlightOptions = [
-    'Full Sun',
-    'Partial Shade',
-    'Shaded'
-  ];
+  // final List<String> _sunlightOptions = [
+  //   'Full Sun',
+  //   'Partial Shade',
+  //   'Shaded'
+  // ];
 
   final List<String> _waterOptions = [
     'High',
@@ -62,7 +62,6 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
     '30–60 days',
     '60–90 days',
     '90–120 days',
-    '120–150 days',
   ];
 
   // Parse range string to get min and max days
@@ -85,7 +84,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
   void _checkFormFilled() {
     setState(() {
       _hasAtLeastOneField = _formData.soilType.isNotEmpty ||
-          _sunlightExposure.isNotEmpty ||
+          //_sunlightExposure.isNotEmpty ||
           _formData.waterAvailability.isNotEmpty ||
           _selectedDurationRange != null;
     });
@@ -101,7 +100,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
   bool _matchesAllSelectedCriteria(Crop crop) {
     // Track which criteria need to be checked
     bool needsSoilMatch = _formData.soilType.isNotEmpty;
-    bool needsSunlightMatch = _sunlightExposure.isNotEmpty;
+    //bool needsSunlightMatch = _sunlightExposure.isNotEmpty;
     bool needsWaterMatch = _formData.waterAvailability.isNotEmpty;
     bool needsDurationMatch = _selectedDurationRange != null;
 
@@ -112,7 +111,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
       if (!soilMatches) return false;
     }
 
-    // 2. Sunlight match
+    /*// 2. Sunlight match
     if (needsSunlightMatch) {
       if (crop.climate == null) return false;
       final cropClimate = crop.climate!.toLowerCase();
@@ -123,7 +122,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
           (selectedSunlight == 'partial shade' && (cropClimate.contains('partial') || cropClimate.contains('shade'))) ||
           (selectedSunlight == 'shaded' && cropClimate.contains('shade'));
       if (!sunlightMatches) return false;
-    }
+    }*/
 
     // 3. Water requirement (EXACT MATCH)
     if (needsWaterMatch) {
@@ -157,9 +156,9 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
     if (_formData.soilType.isNotEmpty) {
       criteria.add('Soil: ${_formData.soilType}');
     }
-    if (_sunlightExposure.isNotEmpty) {
-      criteria.add('Sunlight: $_sunlightExposure');
-    }
+    // if (_sunlightExposure.isNotEmpty) {
+    //   criteria.add('Sunlight: $_sunlightExposure');
+    // }
     if (_formData.waterAvailability.isNotEmpty) {
       criteria.add('Water: ${_formData.waterAvailability}');
     }
@@ -180,7 +179,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
       _formData.previousCrop = null;
       _formData.maxDurationDays = null;
 
-      _sunlightExposure = '';
+      //_sunlightExposure = '';
       _selectedDurationRange = null;
       _hasAtLeastOneField = false;
     });
@@ -230,7 +229,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Select at least one criteria. Crops must match ALL selected criteria.',
+                      'Select at least one criteria.', // Crops must match ALL selected criteria.
                       style: TextStyle(
                         fontSize: 14,
                         color: AgriKeepTheme.textSecondary,
@@ -271,7 +270,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Sunlight Exposure
+                                /*// Sunlight Exposure
                                 InputField(
                                   label: 'Sunlight Exposure',
                                   value: _sunlightExposure,
@@ -287,7 +286,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                                   },
                                   required: false,
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 16),*/
 
                                 // Water Availability
                                 InputField(
@@ -448,7 +447,7 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Selected Criteria (ALL must match):',
+                            'Selected Criteria :', //(ALL must match)
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -474,8 +473,8 @@ class _RecommendationsPageState extends State<RecommendationsPage> {
                           const SizedBox(height: 8),
                           Text(
                             matchingCrops.isNotEmpty
-                                ? 'Found ${matchingCrops.length} crop(s) matching ALL criteria'
-                                : 'No crops match ALL your selected criteria',
+                                ? 'Found ${matchingCrops.length} crop(s) matching the criteria'
+                                : 'No crops match the selected criteria',
                             style: TextStyle(
                               fontSize: 12,
                               color: matchingCrops.isNotEmpty

@@ -8,6 +8,9 @@ import 'package:agrikeep/utils/theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Add this import
 import 'package:firebase_auth/firebase_auth.dart'; // Add this import
 import 'package:agrikeep/models/activity.dart'; // Add this import
+// Add these imports at the top (after existing imports):
+import 'package:agrikeep/services/firebase_service.dart';
+import 'package:agrikeep/models/harvest.dart';
 
 
 
@@ -15,12 +18,19 @@ class CultivationDetailPage extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback onAddActivity;
   final VoidCallback onHarvest;
+  final String cropId; // ADD THIS
+  final String cropName; // ADD THIS
+  final void Function(String)? onNavigate; // ADD THIS (optional)
+
 
   const CultivationDetailPage({
     super.key,
     required this.onBack,
     required this.onAddActivity,
     required this.onHarvest,
+    required this.cropId, // ADD THIS
+    required this.cropName, // ADD THIS
+    this.onNavigate, // ADD THIS
   });
 
   @override
@@ -30,14 +40,50 @@ class CultivationDetailPage extends StatefulWidget {
 class _CultivationDetailPageState extends State<CultivationDetailPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final User? _user = FirebaseAuth.instance.currentUser;
+  final FirebaseService _firebaseService = FirebaseService(); // ADD THIS
+
+
 
   List<TimelineItem> _activities = [];
+  List<Harvest> _harvests = []; // ADD THIS LINE
   bool _isLoading = true;
+  bool _isLoadingHarvests = false; // ADD THIS LINE
+
+  // Use a getter instead of direct initialization
+  _CropDetail get cropData {
+    final plantingDate = DateTime(2024, 1, 15);
+    final today = DateTime.now();
+    final daysElapsed = today.difference(plantingDate).inDays;
+    final totalDays = 90;
+    final expectedHarvest = plantingDate.add(Duration(days: totalDays));
+
+    String status;
+    if (daysElapsed < totalDays * 0.3) {
+      status = 'Early Growth';
+    } else if (daysElapsed < totalDays * 0.7) {
+      status = 'Growing';
+    } else if (daysElapsed < totalDays) {
+      status = 'Flowering/Fruiting';
+    } else {
+      status = 'Ready for Harvest';
+    }
+
+    return _CropDetail(
+      id: widget.cropId,
+      name: widget.cropName,
+      plantingDate: plantingDate,
+      expectedHarvest: expectedHarvest,
+      daysElapsed: daysElapsed,
+      totalDays: totalDays,
+      status: status,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _loadActivities();
+    _loadHarvests(); // ADD THIS LINE
   }
 
   @override
@@ -45,6 +91,24 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
     super.didChangeDependencies();
     // Refresh when returning to this page
     _loadActivities();
+    _loadHarvests(); // ADD THIS LINE
+  }
+
+  Future<void> _loadHarvests() async {
+    if (_user == null) return;
+
+    setState(() => _isLoadingHarvests = true);
+
+    try {
+      final harvests = await _firebaseService.getHarvestsByCropId(widget.cropId);
+      setState(() {
+        _harvests = harvests;
+        _isLoadingHarvests = false;
+      });
+    } catch (e) {
+      print('❌ Error loading harvests: $e');
+      setState(() => _isLoadingHarvests = false);
+    }
   }
 
   Future<void> _loadActivities() async {
@@ -139,20 +203,11 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
     }
   }
 
-  // Crop data (hardcoded for now) - Updated for greenhouse
-  final _CropDetail cropData = _CropDetail(
-    name: 'Cherry Tomato', // Changed from Rice
-    plantingDate: DateTime(2024, 1, 15),
-    expectedHarvest: DateTime(2024, 4, 15), // 90 days from planting
-    daysElapsed: 45,
-    totalDays: 90, // Cherry tomato typical duration
-    status: 'Growing',
-  );
-
-  final progress = (45 / 90) * 100; // Updated for 90-day crop
 
   @override
   Widget build(BuildContext context) {
+    final progress = (cropData.daysElapsed / cropData.totalDays * 100).clamp(0, 100);
+
     return Scaffold(
       backgroundColor: AgriKeepTheme.backgroundColor,
       body: SafeArea(
@@ -167,7 +222,7 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Crop header card
+                    // Crop header card - NOW USING cropData getter
                     CustomCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +234,7 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    cropData.name,
+                                    cropData.name, // ← Works now!
                                     style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -206,7 +261,7 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Text(
-                                  cropData.status,
+                                  cropData.status, // ← Works now!
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -377,6 +432,176 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                     ),
                     const SizedBox(height: 24),
 
+                    // Add this code AFTER the Timeline Card and BEFORE the Action Buttons:
+
+                    const SizedBox(height: 24),
+
+// Harvest History Section
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Harvest History',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AgriKeepTheme.textPrimary,
+                          ),
+                        ),
+                        if (_harvests.isNotEmpty)
+                          TextButton(
+                            onPressed: () {
+                              // Navigate to harvest records for this crop
+                              if (widget.onNavigate != null) {
+                                widget.onNavigate!('crop-harvests');
+                              }
+                            },
+                            child: Text(
+                              'View All',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AgriKeepTheme.primaryColor,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+// Harvest List Card
+                    CustomCard(
+                      child: _isLoadingHarvests
+                          ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                          : _harvests.isEmpty
+                          ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.inventory,
+                              size: 48,
+                              color: AgriKeepTheme.textTertiary,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No harvests recorded yet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AgriKeepTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Record your first harvest above',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AgriKeepTheme.textTertiary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                          : Column(
+                        children: [
+                          // Total harvested summary
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Total Harvested',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AgriKeepTheme.textSecondary,
+                                ),
+                              ),
+                              Text(
+                                '${_harvests.fold(0.0, (sum, h) => sum + h.quantityKg).toStringAsFixed(1)} kg',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AgriKeepTheme.primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Recent harvests (show last 3)
+                          ..._harvests.take(3).map((harvest) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${harvest.quantityKg} kg',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: AgriKeepTheme.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        DateFormat('MMM d, yyyy').format(harvest.harvestDate),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: AgriKeepTheme.textTertiary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (harvest.note != null && harvest.note!.isNotEmpty)
+                                    Flexible(
+                                      child: Text(
+                                        harvest.note!,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: AgriKeepTheme.textSecondary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          // View all button if there are more than 3
+                          if (_harvests.length > 3)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: TextButton(
+                                onPressed: () {
+                                  if (widget.onNavigate != null) {
+                                    widget.onNavigate!('crop-harvests');
+                                  }
+                                },
+                                child: Text(
+                                  'View ${_harvests.length - 3} more harvests',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AgriKeepTheme.primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24), // Add some spacing before action buttons
+
+
                     // Action buttons
                     Column(
                       children: [
@@ -387,9 +612,17 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                           fullWidth: true,
                         ),
                         const SizedBox(height: 12),
+                        // In the action buttons section, update the Record Harvest button:
                         CustomButton(
                           text: 'Record Harvest',
-                          onPressed: widget.onHarvest,
+                          onPressed: () {
+                            // Navigate to harvest entry with crop data
+                            if (widget.onNavigate != null) {
+                              // You need to pass the crop data through navigation
+                              // This depends on your navigation system
+                              widget.onNavigate!('harvest-entry');
+                            }
+                          },
                           variant: ButtonVariant.primary,
                           fullWidth: true,
                         ),
@@ -443,7 +676,9 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
   }
 }
 
+// Update _CropDetail class definition:
 class _CropDetail {
+  final String id; // ADD THIS
   final String name;
   final DateTime plantingDate;
   final DateTime expectedHarvest;
@@ -452,6 +687,7 @@ class _CropDetail {
   final String status;
 
   _CropDetail({
+    required this.id, // ADD THIS
     required this.name,
     required this.plantingDate,
     required this.expectedHarvest,

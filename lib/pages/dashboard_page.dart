@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:agrikeep/widgets/header.dart';
 import 'package:agrikeep/widgets/card.dart';
-//import 'package:agrikeep/widgets/task_card.dart';
-//import 'package:agrikeep/widgets/stat_card.dart';
 import 'package:agrikeep/utils/mock_data.dart';
 import 'package:agrikeep/utils/theme.dart';
 
@@ -302,13 +300,13 @@ class DashboardPage extends StatelessWidget {
         description: 'Learn about different crops',
         color: const Color(0xFF8B5CF6), // purple
       ),
-      _MenuItem(
-        id: 'analytics',
-        icon: Icons.insights,
-        title: 'Record & Analysis',
-        description: 'View insights and trends',
-        color: const Color(0xFF10B981), // emerald
-      ),
+      // _MenuItem(
+      //   id: 'analytics',
+      //   icon: Icons.insights,
+      //   title: 'Record & Analysis',
+      //   description: 'View insights and trends',
+      //   color: const Color(0xFF10B981), // emerald
+      // ),
     ];
 
     return Column(

@@ -19,6 +19,7 @@ import 'package:agrikeep/pages/settings_page.dart';
 import 'package:agrikeep/pages/providers/auth_provider.dart';
 import 'package:agrikeep/pages/weekly_act_page.dart'; // Add this line
 import 'package:agrikeep/pages/add_cultivation_page.dart';
+import 'package:agrikeep/pages/harvest_records_page.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -161,11 +162,15 @@ class _AppState extends State<App> {
           onBack: () => _setCurrentPage('dashboard'),
           onNavigate: _setCurrentPage,
         );
+    // In app.dart, find this case (around line ~150):
       case 'cultivation-detail':
         return CultivationDetailPage(
           onBack: () => _setCurrentPage('cultivation'),
           onAddActivity: () => _setCurrentPage('weekly-activity'),
           onHarvest: () => _setCurrentPage('harvest-entry'),
+          cropId: 'TEMPORARY_CROP_ID_001', // ADD THIS - you need real data
+          cropName: 'Cherry Tomato', // ADD THIS - you need real data
+          onNavigate: _setCurrentPage, // ADD THIS
         );
       // In app.dart, inside _buildMainApp() switch statement
       case 'add-cultivation':
@@ -178,10 +183,26 @@ class _AppState extends State<App> {
           cultivationId: 'TEMPORARY_ID_001', // ⚠️ TEMPORARY - You'll need real data
           cropName: 'Rice', // ⚠️ TEMPORARY - You'll need real data
         );
+    // In app.dart, update the 'harvest-entry' case:
+    // In app.dart, find this case:
       case 'harvest-entry':
         return HarvestEntryPage(
           onBack: () => _setCurrentPage('cultivation-detail'),
           onSave: () => _setCurrentPage('cultivation-detail'),
+          cropId: 'TEMPORARY_CROP_ID_001', // Use same ID as above
+          cropName: 'Cherry Tomato', // Use same name as above
+          cultivationId: 'TEMPORARY_ID_001',
+        );
+      // In the _buildMainApp() switch statement, add:
+      case 'harvest-records':
+        return HarvestRecordsPage(
+          onBack: () => _setCurrentPage('dashboard'),
+        );
+      case 'crop-harvests':
+      // You'll need to pass cropId when navigating
+        return HarvestRecordsPage(
+          onBack: () => _setCurrentPage('cultivation-detail'),
+          cropId: 'PASS_CROP_ID_HERE', // You'll need to implement this
         );
       case 'records':
         return RecordsPage(
@@ -190,8 +211,8 @@ class _AppState extends State<App> {
         );
       case 'crop-info':
         return CropInformationPage(onBack: () => _setCurrentPage('dashboard'));
-      case 'analytics':
-        return AnalyticsPage(onBack: () => _setCurrentPage('dashboard'));
+      // case 'analytics':
+      //   return AnalyticsPage(onBack: () => _setCurrentPage('dashboard'));
       case 'profile':
         return ProfilePage(
           onBack: () => _setCurrentPage('dashboard'),

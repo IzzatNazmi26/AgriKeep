@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:agrikeep/utils/theme.dart';
 import 'package:agrikeep/pages/auth/login_page.dart';
-import 'package:agrikeep/pages/second_page.dart';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;

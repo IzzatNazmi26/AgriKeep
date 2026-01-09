@@ -4,10 +4,106 @@ import 'package:agrikeep/models/crop.dart';
 import 'package:agrikeep/models/farm_profile.dart';
 import 'package:agrikeep/models/yield_record.dart';
 import 'package:agrikeep/models/sales_record.dart';
+import 'package:agrikeep/models/harvest.dart'; // Add this import
+import 'package:agrikeep/models/cultivation.dart'; // Add this import
 
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+
+
+  // Harvest Management
+  Future<List<Harvest>> getHarvests() async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+
+    final snapshot = await _firestore
+        .collection('harvests')
+        .where('userId', isEqualTo: user.uid)
+        .orderBy('harvestDate', descending: true)
+        .get();
+
+    return snapshot.docs.map((doc) => Harvest.fromFirestore(doc.id, doc.data())).toList();
+  }
+
+  Future<List<Harvest>> getHarvestsByCropId(String cropId) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+
+    final snapshot = await _firestore
+        .collection('harvests')
+        .where('userId', isEqualTo: user.uid)
+        .where('cropId', isEqualTo: cropId)
+        .orderBy('harvestDate', descending: true)
+        .get();
+
+    return snapshot.docs.map((doc) => Harvest.fromFirestore(doc.id, doc.data())).toList();
+  }
+
+  Future<void> addHarvest(Harvest harvest) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore.collection('harvests').doc(harvest.id).set(
+      harvest.copyWith(userId: user.uid).toMap(),
+    );
+  }
+
+  Future<double> getTotalHarvestedWeight() async {
+    final user = _auth.currentUser;
+    if (user == null) return 0.0;
+
+    final snapshot = await _firestore
+        .collection('harvests')
+        .where('userId', isEqualTo: user.uid)
+        .get();
+
+    return snapshot.docs.fold<double>(0.0, (sum, doc) {
+      final data = doc.data();
+      return sum + (data['quantityKg'] ?? 0.0);
+    });
+  }
+
+  Future<Map<String, dynamic>> getCropHarvestSummary(String cropId) async {
+    final user = _auth.currentUser;
+    if (user == null) return {};
+
+    final snapshot = await _firestore
+        .collection('harvests')
+        .where('userId', isEqualTo: user.uid)
+        .where('cropId', isEqualTo: cropId)
+        .get();
+
+    final harvests = snapshot.docs.map((doc) => Harvest.fromFirestore(doc.id, doc.data())).toList();
+
+    final totalQuantity = harvests.fold<double>(0.0, (sum, harvest) => sum + harvest.quantityKg);
+    final count = harvests.length;
+    final firstHarvest = harvests.isNotEmpty ? harvests.last.harvestDate : null;
+    final lastHarvest = harvests.isNotEmpty ? harvests.first.harvestDate : null;
+
+    return {
+      'totalQuantity': totalQuantity,
+      'count': count,
+      'firstHarvest': firstHarvest,
+      'lastHarvest': lastHarvest,
+      'averagePerHarvest': count > 0 ? totalQuantity / count : 0.0,
+    };
+  }
+
+  // Cultivation Management (to update status when harvested)
+  Future<void> updateCultivationStatus(String cultivationId, String status) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('cultivations')
+        .doc(cultivationId)
+        .update({
+      'status': status,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
 
   // User Management
   Future<void> updateUserProfile(Map<String, dynamic> data) async {

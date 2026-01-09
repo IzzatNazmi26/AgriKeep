@@ -5,15 +5,23 @@ import 'package:agrikeep/widgets/card.dart';
 import 'package:agrikeep/widgets/custom_button.dart';
 import 'package:agrikeep/widgets/input_field.dart';
 import 'package:agrikeep/utils/theme.dart';
+import 'package:agrikeep/services/firebase_service.dart';
+import 'package:agrikeep/models/harvest.dart';
 
 class HarvestEntryPage extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback onSave;
+  final String cropId; // Add this
+  final String cropName; // Add this
+  final String? cultivationId; // Optional: link to cultivation
 
   const HarvestEntryPage({
     super.key,
     required this.onBack,
     required this.onSave,
+    required this.cropId,
+    required this.cropName,
+    this.cultivationId,
   });
 
   @override
@@ -22,12 +30,14 @@ class HarvestEntryPage extends StatefulWidget {
 
 class _HarvestEntryPageState extends State<HarvestEntryPage> {
   final _formKey = GlobalKey<FormState>();
+  final FirebaseService _firebaseService = FirebaseService();
   final Map<String, dynamic> _formData = {
-    'cropName': 'Cherry Tomato', // Default to greenhouse crop
     'harvestDate': '',
     'quantityKg': '',
     'note': '',
   };
+
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -37,11 +47,54 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
     _formData['harvestDate'] = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
-      // Here you would save to Firebase
-      print('Harvest Data: $_formData');
-      widget.onSave();
+      setState(() => _isSaving = true);
+
+      try {
+        final harvest = Harvest(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          userId: '', // Will be set by FirebaseService
+          cropId: widget.cropId,
+          cropName: widget.cropName,
+          harvestDate: DateTime.parse(_formData['harvestDate']),
+          quantityKg: double.parse(_formData['quantityKg']),
+          note: _formData['note'].isNotEmpty ? _formData['note'] : null,
+          createdAt: DateTime.now(),
+        );
+
+        // Save to Firebase
+        await _firebaseService.addHarvest(harvest);
+
+        // If linked to cultivation, update its status
+        if (widget.cultivationId != null) {
+          await _firebaseService.updateCultivationStatus(widget.cultivationId!, 'Harvested');
+        }
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Harvest saved successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Navigate back after delay
+        await Future.delayed(const Duration(milliseconds: 1500));
+        widget.onSave();
+
+      } catch (e) {
+        print('❌ Error saving harvest: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to save harvest. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -75,7 +128,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Simple info card
+                    // Crop info banner
                     CustomCard(
                       backgroundColor: const Color(0xFFF0FDF4),
                       border: Border.all(color: const Color(0xFFBBF7D0)),
@@ -100,11 +153,11 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Record Your Harvest',
+                                  'Crop: ${widget.cropName}',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF166534),
+                                    color: AgriKeepTheme.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -112,7 +165,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                                   'Enter harvested quantity in kilograms',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: const Color(0xFF166534),
+                                    color: AgriKeepTheme.textSecondary,
                                   ),
                                 ),
                               ],
@@ -152,7 +205,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  _formData['cropName'],
+                                  widget.cropName,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
@@ -272,8 +325,8 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
 
                           // Save Button
                           CustomButton(
-                            text: 'Save Harvest Record',
-                            onPressed: _handleSubmit,
+                            text: _isSaving ? 'Saving...' : 'Save Harvest Record',
+                            onPressed: _isSaving ? null : _handleSubmit,
                             variant: ButtonVariant.primary,
                             size: ButtonSize.large,
                             fullWidth: true,

@@ -5,7 +5,7 @@ class RecommendationInput {
   String? previousCrop;
   String? plantingMonth;
   String? currentSeason;
-  String? sunlightExposure;
+  //String? sunlightExposure;
   int? maxDurationDays; // ADD THIS
 
   RecommendationInput({
@@ -15,7 +15,7 @@ class RecommendationInput {
     this.previousCrop,
     this.plantingMonth,
     this.currentSeason,
-    this.sunlightExposure,
+    //this.sunlightExposure,
     this.maxDurationDays, // ADD THIS
   });
 
@@ -27,7 +27,7 @@ class RecommendationInput {
       'previousCrop': previousCrop,
       'plantingMonth': plantingMonth,
       'currentSeason': currentSeason,
-      'sunlightExposure': sunlightExposure,
+      //'sunlightExposure': sunlightExposure,
       'maxDurationDays': maxDurationDays, // ADD THIS
     };
   }
@@ -40,7 +40,7 @@ class RecommendationInput {
       previousCrop: map['previousCrop'],
       plantingMonth: map['plantingMonth'],
       currentSeason: map['currentSeason'],
-      sunlightExposure: map['sunlightExposure'],
+      //sunlightExposure: map['sunlightExposure'],
       maxDurationDays: map['maxDurationDays'] != null ? (map['maxDurationDays'] as num).toInt() : null, // ADD THIS
     );
   }
@@ -52,7 +52,7 @@ class RecommendationInput {
     String? previousCrop,
     String? plantingMonth,
     String? currentSeason,
-    String? sunlightExposure,
+    //String? sunlightExposure,
     int? maxDurationDays, // ADD THIS
   }) {
     return RecommendationInput(
@@ -62,7 +62,7 @@ class RecommendationInput {
       previousCrop: previousCrop ?? this.previousCrop,
       plantingMonth: plantingMonth ?? this.plantingMonth,
       currentSeason: currentSeason ?? this.currentSeason,
-      sunlightExposure: sunlightExposure ?? this.sunlightExposure,
+      //sunlightExposure: sunlightExposure ?? this.sunlightExposure,
       maxDurationDays: maxDurationDays ?? this.maxDurationDays, // ADD THIS
     );
   }
