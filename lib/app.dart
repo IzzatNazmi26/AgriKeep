@@ -17,7 +17,7 @@ import 'package:agrikeep/pages/crop_information_page.dart';
 import 'package:agrikeep/pages/profile_page.dart';
 import 'package:agrikeep/pages/settings_page.dart';
 import 'package:agrikeep/pages/providers/auth_provider.dart';
-import 'package:agrikeep/pages/weekly_act_page.dart'; // Add this line
+import 'package:agrikeep/pages/weekly_act_page.dart';
 import 'package:agrikeep/pages/add_cultivation_page.dart';
 import 'package:agrikeep/pages/harvest_records_page.dart';
 
@@ -30,23 +30,26 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   AppState _appState = AppState.splash;
-  String _currentPage = 'dashboard'; // Added back for navigation
+  String _currentPage = 'dashboard';
+  Map<String, dynamic>? _currentPageParams; // Store navigation parameters
 
   void _setAppState(AppState state) {
     print("🔄 Changing app state from $_appState to $state");
     setState(() => _appState = state);
   }
 
-  void _setCurrentPage(String page) {
-    print("📱 Setting current page to: $page");
-    setState(() => _currentPage = page);
+  void _setCurrentPage(String page, {Map<String, dynamic>? params}) {
+    print("📱 Setting current page to: $page with params: $params");
+    setState(() {
+      _currentPage = page;
+      _currentPageParams = params;
+    });
   }
 
   void _handleLogin() {
     // Do nothing here
     // Firebase Auth + AuthProvider will handle state
   }
-
 
   void _handleSignUp() {
     _setAppState(AppState.profileSetup);
@@ -67,7 +70,7 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) {
     print("🎨 Building App with state: $_appState, page: $_currentPage");
 
-    // 🔑 STEP 3 — LISTEN TO AUTH PROVIDER (ADD THIS BLOCK)
+    // Listen to auth provider
     final authProvider = context.watch<AuthProvider>();
 
     if (authProvider.isAuthenticated && _appState != AppState.app) {
@@ -82,7 +85,6 @@ class _AppState extends State<App> {
         _setAppState(AppState.login);
       });
     }
-    // 🔑 END STEP 3
 
     // 1. SPLASH SCREEN
     if (_appState == AppState.splash) {
@@ -100,7 +102,6 @@ class _AppState extends State<App> {
         },
       );
     }
-
 
     // 2. WELCOME PAGE
     if (_appState == AppState.welcome) {
@@ -145,13 +146,31 @@ class _AppState extends State<App> {
       return _buildMainApp();
     }
 
-    // Fallback - should never reach here
+    // Fallback
     return const Scaffold(
       body: Center(child: Text('Something went wrong')),
     );
   }
 
   Widget _buildMainApp() {
+    // Handle dynamic cultivation-detail route with ID
+    if (_currentPage.startsWith('cultivation-detail/')) {
+      final parts = _currentPage.split('/');
+      if (parts.length >= 2) {
+        final cultivationId = parts[1];
+        return CultivationDetailPage(
+          onBack: () => _setCurrentPage('cultivation'),
+          onAddActivity: () => _setCurrentPage('weekly-activity', params: {'cultivationId': cultivationId}),
+          onHarvest: () => _setCurrentPage('harvest-entry', params: {'cultivationId': cultivationId}),
+          cropId: 'TEMPORARY_CROP_ID_001', // TODO: Fetch from Firebase using cultivationId
+          cropName: 'Cherry Tomato', // TODO: Fetch from Firebase using cultivationId
+          onNavigate: _setCurrentPage,
+          cultivationId: cultivationId,
+        );
+      }
+    }
+
+    // Handle other routes
     switch (_currentPage) {
       case 'dashboard':
         return DashboardPage(onNavigate: _setCurrentPage);
@@ -162,47 +181,29 @@ class _AppState extends State<App> {
           onBack: () => _setCurrentPage('dashboard'),
           onNavigate: _setCurrentPage,
         );
-    // In app.dart, find this case (around line ~150):
-      case 'cultivation-detail':
-        return CultivationDetailPage(
-          onBack: () => _setCurrentPage('cultivation'),
-          onAddActivity: () => _setCurrentPage('weekly-activity'),
-          onHarvest: () => _setCurrentPage('harvest-entry'),
-          cropId: 'TEMPORARY_CROP_ID_001', // ADD THIS - you need real data
-          cropName: 'Cherry Tomato', // ADD THIS - you need real data
-          onNavigate: _setCurrentPage, // ADD THIS
-        );
-      // In app.dart, inside _buildMainApp() switch statement
       case 'add-cultivation':
         return AddCultivationPage(
           onBack: () => _setCurrentPage('cultivation'),
         );
       case 'weekly-activity':
+        final cultivationId = _currentPageParams?['cultivationId'] ?? 'TEMPORARY_ID_001';
         return WeeklyActivityPage(
-          onBack: () => _setCurrentPage('cultivation-detail'),
-          cultivationId: 'TEMPORARY_ID_001', // ⚠️ TEMPORARY - You'll need real data
-          cropName: 'Rice', // ⚠️ TEMPORARY - You'll need real data
+          onBack: () => _setCurrentPage('cultivation-detail/$cultivationId'),
+          cultivationId: cultivationId,
+          cropName: 'Rice', // TODO: Fetch from Firebase
         );
-    // In app.dart, update the 'harvest-entry' case:
-    // In app.dart, find this case:
       case 'harvest-entry':
+        final harvestCultivationId = _currentPageParams?['cultivationId']  ;
         return HarvestEntryPage(
-          onBack: () => _setCurrentPage('cultivation-detail'),
-          onSave: () => _setCurrentPage('cultivation-detail'),
-          cropId: 'TEMPORARY_CROP_ID_001', // Use same ID as above
-          cropName: 'Cherry Tomato', // Use same name as above
-          cultivationId: 'TEMPORARY_ID_001',
+          onBack: () => _setCurrentPage('cultivation-detail/$harvestCultivationId'),
+          onSave: () => _setCurrentPage('cultivation-detail/$harvestCultivationId'),
+          cropId: 'TEMPORARY_CROP_ID_001',
+          cropName: 'Cherry Tomato',
+          cultivationId: harvestCultivationId,
         );
-      // In the _buildMainApp() switch statement, add:
       case 'harvest-records':
         return HarvestRecordsPage(
           onBack: () => _setCurrentPage('dashboard'),
-        );
-      case 'crop-harvests':
-      // You'll need to pass cropId when navigating
-        return HarvestRecordsPage(
-          onBack: () => _setCurrentPage('cultivation-detail'),
-          cropId: 'PASS_CROP_ID_HERE', // You'll need to implement this
         );
       case 'records':
         return RecordsPage(
@@ -211,8 +212,6 @@ class _AppState extends State<App> {
         );
       case 'crop-info':
         return CropInformationPage(onBack: () => _setCurrentPage('dashboard'));
-      // case 'analytics':
-      //   return AnalyticsPage(onBack: () => _setCurrentPage('dashboard'));
       case 'profile':
         return ProfilePage(
           onBack: () => _setCurrentPage('dashboard'),
@@ -220,12 +219,9 @@ class _AppState extends State<App> {
           onNavigate: _setCurrentPage,
         );
       case 'settings':
-        return SettingsPage(onBack: () => _setCurrentPage('profile')
-        );
+        return SettingsPage(onBack: () => _setCurrentPage('profile'));
       default:
-        return DashboardPage(onNavigate: _setCurrentPage
-        );
-
+        return DashboardPage(onNavigate: _setCurrentPage);
     }
   }
 }

@@ -8,6 +8,8 @@ import 'package:agrikeep/utils/theme.dart';
 import 'package:agrikeep/utils/mock_data.dart';
 import 'package:agrikeep/models/cultivation.dart';
 import 'package:agrikeep/models/crop.dart';
+import 'package:agrikeep/services/firebase_service.dart';
+
 
 class AddCultivationPage extends StatefulWidget {
   final VoidCallback onBack;
@@ -129,24 +131,34 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
     setState(() => _isLoading = true);
 
     try {
+      final firebaseService = FirebaseService();
+
       // Create cultivation object
       final plantingDate = _formData['plantingDate'] as DateTime;
       final growthDuration = _formData['growthDurationDays'] as int;
       final expectedHarvest = _formData['expectedHarvestDate'] as DateTime;
 
       // Calculate current day and progress
-      final currentDay = DateTime.now().difference(plantingDate).inDays;
+      final currentDay = DateTime.now().difference(plantingDate).inDays.clamp(0, growthDuration);
       final progressPercentage = ((currentDay / growthDuration) * 100).clamp(0, 100).toInt();
 
+      // Determine initial status based on progress
+      String initialStatus = 'Planted';
+      if (progressPercentage > 30) initialStatus = 'Growing';
+      if (progressPercentage > 60) initialStatus = 'Flowering';
+
+      // Generate a unique ID
+      final cultivationId = 'cult_${DateTime.now().millisecondsSinceEpoch}_${_formData['cropId']}';
+
       final cultivation = Cultivation(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: 'user123', // TODO: Replace with actual user ID from AuthProvider
+        id: cultivationId,
+        userId: '', // Will be set by FirebaseService
         cropId: _formData['cropId'] as String,
         cropName: _formData['cropName'] as String,
         plantingDate: plantingDate,
         growthDurationDays: growthDuration,
         expectedHarvestDate: expectedHarvest,
-        status: 'Planted',
+        status: initialStatus,
         currentDay: currentDay,
         progressPercentage: progressPercentage,
         note: _formData['note'] as String?,
@@ -154,8 +166,8 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
         updatedAt: DateTime.now(),
       );
 
-      // TODO: Save to Firebase
-      print('🌱 Cultivation to save: ${cultivation.toMap()}');
+      // Save to Firebase
+      await firebaseService.addCultivation(cultivation);
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -177,7 +189,7 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to save cultivation: $e'),
+          content: Text('Failed to save cultivation: ${e.toString()}'),
           backgroundColor: AgriKeepTheme.errorColor,
           duration: const Duration(seconds: 3),
         ),

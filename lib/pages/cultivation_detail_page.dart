@@ -20,6 +20,7 @@ class CultivationDetailPage extends StatefulWidget {
   final VoidCallback onHarvest;
   final String cropId; // ADD THIS
   final String cropName; // ADD THIS
+  final String cultivationId; // Add this
   final void Function(String)? onNavigate; // ADD THIS (optional)
 
 
@@ -31,6 +32,7 @@ class CultivationDetailPage extends StatefulWidget {
     required this.cropId, // ADD THIS
     required this.cropName, // ADD THIS
     this.onNavigate, // ADD THIS
+    required this.cultivationId, // Add this
   });
 
   @override
@@ -86,13 +88,13 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
     _loadHarvests(); // ADD THIS LINE
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Refresh when returning to this page
-    _loadActivities();
-    _loadHarvests(); // ADD THIS LINE
-  }
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   // Refresh when returning to this page
+  //   _loadActivities();
+  //   _loadHarvests(); // ADD THIS LINE
+  // }
 
   Future<void> _loadHarvests() async {
     if (_user == null) return;
@@ -114,15 +116,14 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
   Future<void> _loadActivities() async {
     print('🔍 Loading activities...');
     print('   User ID: ${_user?.uid}');
-    print('   Cultivation ID: TEMPORARY_ID_001');
+    print('   Cultivation ID: ${widget.cultivationId}');
 
     if (_user == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Use the same ID as WeeklyActivityPage
-      final cultivationId = 'TEMPORARY_ID_001';
+      final cultivationId = widget.cultivationId;
 
       final querySnapshot = await _firestore
           .collection('activities')
@@ -173,33 +174,9 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
       print('❌ Error loading activities: $e');
       setState(() => _isLoading = false);
 
-      // Fallback to hardcoded activities if Firebase fails
-      _activities = [
-        TimelineItem(
-          date: '2024-02-28',
-          title: 'Fertilizer Applied',
-          description: 'NPK fertilizer - 50kg applied to field',
-          completed: true,
-        ),
-        TimelineItem(
-          date: '2024-02-20',
-          title: 'Pest Control',
-          description: 'Sprayed organic pesticide for leaf hoppers',
-          completed: true,
-        ),
-        TimelineItem(
-          date: '2024-02-10',
-          title: 'Watering',
-          description: 'Maintained 2-3 inches water level',
-          completed: true,
-        ),
-        TimelineItem(
-          date: '2024-01-15',
-          title: 'Planting',
-          description: 'Planted rice seedlings in 2 hectares',
-          completed: true,
-        ),
-      ];
+      // Fallback to hardcoded activities if Firebase fails //dah tukar takde fallback
+      _activities = [];
+
     }
   }
 

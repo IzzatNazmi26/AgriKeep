@@ -3,14 +3,53 @@ import 'package:agrikeep/widgets/header.dart';
 import 'package:agrikeep/widgets/card.dart';
 import 'package:agrikeep/utils/mock_data.dart';
 import 'package:agrikeep/utils/theme.dart';
+import 'package:agrikeep/models/cultivation.dart';
+import 'package:agrikeep/services/firebase_service.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   final Function(String) onNavigate;
 
   const DashboardPage({
     super.key,
     required this.onNavigate,
   });
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  final FirebaseService _firebaseService = FirebaseService();
+  List<Cultivation> _cultivations = [];
+  int _activeCount = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final cultivations = await _firebaseService.getCultivations();
+      final activeCultivations = await _firebaseService.getActiveCultivations();
+
+      setState(() {
+        _cultivations = cultivations;
+        _activeCount = activeCultivations.length;
+      });
+    } catch (e) {
+      print('Error loading dashboard data: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _refreshData() async {
+    await _loadData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +62,7 @@ class DashboardPage extends StatelessWidget {
             AppHeader(
               title: 'Dashboard',
               action: IconButton(
-                onPressed: () => onNavigate('settings'),
+                onPressed: () => widget.onNavigate('settings'),
                 icon: const Icon(Icons.settings_outlined),
                 color: AgriKeepTheme.textPrimary,
                 splashRadius: 20,
@@ -32,35 +71,35 @@ class DashboardPage extends StatelessWidget {
 
             // Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome section
-                    _buildWelcomeSection(),
-                    const SizedBox(height: 24),
+              child: RefreshIndicator(
+                onRefresh: _refreshData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Welcome section
+                      _buildWelcomeSection(),
+                      const SizedBox(height: 24),
 
-                    // Quick stats
-                    _buildQuickStats(),
-                    const SizedBox(height: 24),
+                      // Quick stats
+                      _buildQuickStats(),
+                      const SizedBox(height: 24),
 
-                    // Current crops
-                    _buildCurrentCrops(),
-                    const SizedBox(height: 24),
+                      // Current crops
+                      _buildCurrentCrops(),
+                      const SizedBox(height: 24),
 
-                    // // Upcoming tasks
-                    // _buildUpcomingTasks(),
-                    // const SizedBox(height: 24),
+                      // Features menu
+                      _buildFeaturesMenu(),
+                      const SizedBox(height: 24),
 
-                    // Features menu
-                    _buildFeaturesMenu(),
-                    const SizedBox(height: 24),
-
-                    // Profile quick access
-                    _buildProfileQuickAccess(),
-                    const SizedBox(height: 16),
-                  ],
+                      // Profile quick access
+                      _buildProfileQuickAccess(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -113,32 +152,140 @@ class DashboardPage extends StatelessWidget {
         StatCard(
           icon: Icons.eco,
           label: 'Active Crops',
-          value: '3',
+          value: _activeCount.toString(),
           color: AgriKeepTheme.primaryColor,
+          isLoading: _isLoading,
         ),
         StatCard(
           icon: Icons.list_alt,
           label: 'Activities',
-          value: '12',
+          value: _cultivations.length.toString(),
           color: AgriKeepTheme.secondaryColor,
+          isLoading: _isLoading,
         ),
         StatCard(
           icon: Icons.attach_money,
           label: 'Revenue',
           value: 'RM${totalRevenue.toInt()}',
           color: AgriKeepTheme.infoColor,
+          isLoading: _isLoading,
         ),
       ],
     );
   }
 
   Widget _buildCurrentCrops() {
-    final List<Map<String, dynamic>> crops = [
-      {'name': 'Cherry Tomato', 'status': 'Growing', 'progress': 65, 'daysLeft': 45},
-      {'name': 'Cucumber', 'status': 'Growing', 'progress': 80, 'daysLeft': 10},
-      {'name': 'Capsicum', 'status': 'Flowering', 'progress': 40, 'daysLeft': 90},
-    ];
+    if (_isLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Current Crops',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AgriKeepTheme.textPrimary,
+                ),
+              ),
+              CircularProgressIndicator(
+                color: AgriKeepTheme.primaryColor,
+                strokeWidth: 2,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          CustomCard(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: AgriKeepTheme.primaryColor,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
+    if (_cultivations.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Current Crops',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AgriKeepTheme.textPrimary,
+                ),
+              ),
+              TextButton(
+                onPressed: () => widget.onNavigate('cultivation'),
+                child: Text(
+                  'View All',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AgriKeepTheme.primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          CustomCard(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.eco,
+                    size: 48,
+                    color: AgriKeepTheme.textTertiary.withOpacity(0.5),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No Active Crops',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AgriKeepTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Add your first cultivation to get started',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AgriKeepTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  CustomButton(
+                    text: 'Add Cultivation',
+                    onPressed: () => widget.onNavigate('add-cultivation'),
+                    variant: ButtonVariant.primary,
+                    size: ButtonSize.small,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final activeCrops = _cultivations
+        .where((c) => ['Planted', 'Growing', 'Flowering'].contains(c.status))
+        .take(3)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,7 +302,7 @@ class DashboardPage extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () => onNavigate('cultivation'),
+              onPressed: () => widget.onNavigate('cultivation'),
               child: Text(
                 'View All',
                 style: TextStyle(
@@ -169,9 +316,15 @@ class DashboardPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Column(
-          children: crops.map((crop) {
+          children: activeCrops.map((cultivation) {
+            final daysLeft = cultivation.expectedHarvestDate
+                .difference(DateTime.now()).inDays;
+
             return CustomCard(
-              onTap: () => onNavigate('cultivation-detail'),
+              onTap: () {
+                // Pass the cultivation ID in the route
+                widget.onNavigate('cultivation-detail/${cultivation.id}');
+              },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -182,7 +335,7 @@ class DashboardPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            crop['name'] as String,
+                            cultivation.cropName,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -191,7 +344,7 @@ class DashboardPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            crop['status'] as String,
+                            cultivation.status,
                             style: const TextStyle(
                               fontSize: 14,
                               color: AgriKeepTheme.textSecondary,
@@ -199,18 +352,30 @@ class DashboardPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Text(
-                        '${crop['daysLeft']} days left',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AgriKeepTheme.textTertiary,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: daysLeft < 0
+                              ? Colors.red.withOpacity(0.1)
+                              : AgriKeepTheme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          daysLeft < 0 ? 'Overdue' : '$daysLeft days left',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: daysLeft < 0
+                                ? Colors.red
+                                : AgriKeepTheme.primaryColor,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   LinearProgressIndicator(
-                    value: (crop['progress'] as int) / 100,
+                    value: cultivation.progressPercentage / 100,
                     backgroundColor: AgriKeepTheme.borderColor,
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       AgriKeepTheme.primaryColor,
@@ -226,50 +391,6 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  // Widget _buildUpcomingTasks() {
-  //   final tasks = [
-  //     TaskCard(
-  //       title: 'Fertilize Rice Crop',
-  //       description: 'Apply NPK fertilizer to rice field',
-  //       dueDate: 'Tomorrow',
-  //       priority: TaskPriority.high,
-  //       //onTap: () => onNavigate('cultivation-detail'),
-  //     ),
-  //     TaskCard(
-  //       title: 'Update Weekly Activity',
-  //       description: 'Log this week\'s farming activities',
-  //       dueDate: 'In 2 days',
-  //       priority: TaskPriority.medium,
-  //       //onTap: () => onNavigate('weekly-activity'),
-  //     ),
-  //     TaskCard(
-  //       title: 'Wheat Harvest Ready',
-  //       description: 'Wheat crop ready for harvest soon',
-  //       dueDate: 'In 45 days',
-  //       priority: TaskPriority.low,
-  //       //onTap: () => onNavigate('harvest-entry'),
-  //     ),
-  //   ];
-  //
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Text(
-  //         'Upcoming Tasks',
-  //         style: TextStyle(
-  //           fontSize: 18,
-  //           fontWeight: FontWeight.w600,
-  //           color: AgriKeepTheme.textPrimary,
-  //         ),
-  //       ),
-  //       const SizedBox(height: 12),
-  //       Column(
-  //         children: tasks,
-  //       ),
-  //     ],
-  //   );
-  // }
-
   Widget _buildFeaturesMenu() {
     final menuItems = [
       _MenuItem(
@@ -282,7 +403,7 @@ class DashboardPage extends StatelessWidget {
       _MenuItem(
         id: 'cultivation',
         icon: Icons.list_alt,
-        title: 'Cultivation Log',
+        title: 'Cultivation Activities',
         description: 'Track farming activities',
         color: AgriKeepTheme.secondaryColor,
       ),
@@ -300,13 +421,6 @@ class DashboardPage extends StatelessWidget {
         description: 'Learn about different crops',
         color: const Color(0xFF8B5CF6), // purple
       ),
-      // _MenuItem(
-      //   id: 'analytics',
-      //   icon: Icons.insights,
-      //   title: 'Record & Analysis',
-      //   description: 'View insights and trends',
-      //   color: const Color(0xFF10B981), // emerald
-      // ),
     ];
 
     return Column(
@@ -324,7 +438,7 @@ class DashboardPage extends StatelessWidget {
         Column(
           children: menuItems.map((item) {
             return CustomCard(
-              onTap: () => onNavigate(item.id),
+              onTap: () => widget.onNavigate(item.id),
               child: Row(
                 children: [
                   Container(
@@ -379,7 +493,7 @@ class DashboardPage extends StatelessWidget {
 
   Widget _buildProfileQuickAccess() {
     return CustomCard(
-      onTap: () => onNavigate('profile'),
+      onTap: () => widget.onNavigate('profile'),
       child: Row(
         children: [
           Container(
@@ -439,3 +553,128 @@ class _MenuItem {
     required this.color,
   });
 }
+
+// Custom StatCard widget with loading state
+class StatCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final bool isLoading;
+
+  const StatCard({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AgriKeepTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AgriKeepTheme.borderColor),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          isLoading
+              ? CircularProgressIndicator(
+            color: color,
+            strokeWidth: 2,
+          )
+              : Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AgriKeepTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: AgriKeepTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// CustomButton widget (you might need to adjust this based on your existing CustomButton)
+class CustomButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onPressed;
+  final ButtonVariant variant;
+  final ButtonSize size;
+  final bool isLoading;
+
+  const CustomButton({
+    super.key,
+    required this.text,
+    required this.onPressed,
+    this.variant = ButtonVariant.primary,
+    this.size = ButtonSize.medium,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: variant == ButtonVariant.primary
+            ? AgriKeepTheme.primaryColor
+            : Colors.transparent,
+        foregroundColor: variant == ButtonVariant.primary
+            ? Colors.white
+            : AgriKeepTheme.primaryColor,
+        padding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: size == ButtonSize.large ? 16 : 12,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: variant == ButtonVariant.outline
+              ? BorderSide(color: AgriKeepTheme.primaryColor)
+              : BorderSide.none,
+        ),
+      ),
+      child: isLoading
+          ? CircularProgressIndicator(
+        color: variant == ButtonVariant.primary
+            ? Colors.white
+            : AgriKeepTheme.primaryColor,
+        strokeWidth: 2,
+      )
+          : Text(text),
+    );
+  }
+}
+
+enum ButtonVariant { primary, outline }
+enum ButtonSize { small, medium, large }

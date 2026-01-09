@@ -11,7 +11,96 @@ class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // add new cultivation part
+  // Cultivation Management
+  Future<List<Cultivation>> getCultivations() async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
 
+    final snapshot = await _firestore
+        .collection('cultivations')
+        .where('userId', isEqualTo: user.uid)
+        .orderBy('plantingDate', descending: true)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return Cultivation.fromFirestore(doc.id, data ?? {});
+    }).toList();
+  }
+
+  Future<Cultivation?> getCultivationById(String id) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final doc = await _firestore
+        .collection('cultivations')
+        .doc(id)
+        .get();
+
+    if (doc.exists) {
+      final data = doc.data();
+      return Cultivation.fromFirestore(doc.id, data ?? {});
+    }
+    return null;
+  }
+
+  Future<void> addCultivation(Cultivation cultivation) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    await _firestore.collection('cultivations').doc(cultivation.id).set(
+      cultivation.copyWith(userId: user.uid).toMap(),
+    );
+  }
+
+  Future<void> updateCultivation(Cultivation cultivation) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('cultivations')
+        .doc(cultivation.id)
+        .update(cultivation.toMap());
+  }
+
+  Future<void> deleteCultivation(String id) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore.collection('cultivations').doc(id).delete();
+  }
+
+  Future<List<Cultivation>> getActiveCultivations() async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+
+    final snapshot = await _firestore
+        .collection('cultivations')
+        .where('userId', isEqualTo: user.uid)
+        .where('status', whereIn: ['Planted', 'Growing', 'Flowering'])
+        .orderBy('plantingDate', descending: true)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return Cultivation.fromFirestore(doc.id, data ?? {});
+    }).toList();
+  }
+
+  Future<int> getActiveCultivationsCount() async {
+    final user = _auth.currentUser;
+    if (user == null) return 0;
+
+    final snapshot = await _firestore
+        .collection('cultivations')
+        .where('userId', isEqualTo: user.uid)
+        .where('status', whereIn: ['Planted', 'Growing', 'Flowering'])
+        .count()
+        .get();
+
+    return snapshot.count ?? 0; // Handle null case
+  }
 
   // Harvest Management
   Future<List<Harvest>> getHarvests() async {
