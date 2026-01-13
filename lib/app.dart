@@ -20,6 +20,7 @@ import 'package:agrikeep/pages/providers/auth_provider.dart';
 import 'package:agrikeep/pages/weekly_act_page.dart';
 import 'package:agrikeep/pages/add_cultivation_page.dart';
 import 'package:agrikeep/pages/harvest_records_page.dart';
+import 'package:agrikeep/models/cultivation.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -154,19 +155,48 @@ class _AppState extends State<App> {
 
   Widget _buildMainApp() {
     // Handle dynamic cultivation-detail route with ID
+    // In the _buildMainApp() method, update the cultivation-detail route handling:
     if (_currentPage.startsWith('cultivation-detail/')) {
       final parts = _currentPage.split('/');
       if (parts.length >= 2) {
         final cultivationId = parts[1];
-        return CultivationDetailPage(
-          onBack: () => _setCurrentPage('cultivation'),
-          onAddActivity: () => _setCurrentPage('weekly-activity', params: {'cultivationId': cultivationId}),
-          onHarvest: () => _setCurrentPage('harvest-entry', params: {'cultivationId': cultivationId}),
-          cropId: 'TEMPORARY_CROP_ID_001', // TODO: Fetch from Firebase using cultivationId
-          cropName: 'Cherry Tomato', // TODO: Fetch from Firebase using cultivationId
-          onNavigate: _setCurrentPage,
-          cultivationId: cultivationId,
-        );
+
+        // Check if we have the cultivation data passed as params
+        final cultivation = _currentPageParams?['cultivation'] as Cultivation?;
+
+        if (cultivation != null) {
+          return CultivationDetailPage(
+            onBack: () => _setCurrentPage('cultivation'),
+            onAddActivity: () => _setCurrentPage('weekly-activity', params: {
+              'cultivationId': cultivationId,
+              'cropName': cultivation.cropName,
+            }),
+            onHarvest: () => _setCurrentPage('harvest-entry', params: {
+              'cultivationId': cultivationId,
+              'cropName': cultivation.cropName,
+              'cropId': cultivation.cropId,
+            }),
+            cropId: cultivation.cropId,
+            cropName: cultivation.cropName,
+            onNavigate: _setCurrentPage,
+            cultivationId: cultivationId,
+          );
+        } else {
+          // TODO: We might need to fetch the cultivation data here
+          return CultivationDetailPage(
+            onBack: () => _setCurrentPage('cultivation'),
+            onAddActivity: () => _setCurrentPage('weekly-activity', params: {
+              'cultivationId': cultivationId,
+            }),
+            onHarvest: () => _setCurrentPage('harvest-entry', params: {
+              'cultivationId': cultivationId,
+            }),
+            cropId: 'TEMPORARY_CROP_ID_001', // Placeholder until we fetch data
+            cropName: 'Loading...',
+            onNavigate: _setCurrentPage,
+            cultivationId: cultivationId,
+          );
+        }
       }
     }
 
@@ -187,23 +217,28 @@ class _AppState extends State<App> {
         );
       case 'weekly-activity':
         final cultivationId = _currentPageParams?['cultivationId'] ?? 'TEMPORARY_ID_001';
+        final cropName = _currentPageParams?['cropName'] ?? 'Crop'; // Get from params
+
         return WeeklyActivityPage(
           onBack: () => _setCurrentPage('cultivation-detail/$cultivationId'),
           cultivationId: cultivationId,
-          cropName: 'Rice', // TODO: Fetch from Firebase
+          cropName: cropName, // Use the real crop name from params
         );
       case 'harvest-entry':
-        final harvestCultivationId = _currentPageParams?['cultivationId']  ;
+        final harvestCultivationId = _currentPageParams?['cultivationId'];
+        final cropId = _currentPageParams?['cropId'] ?? 'TEMPORARY_CROP_ID_001'; // Get from params
+        final cropName = _currentPageParams?['cropName'] ?? 'Crop'; // Get from params
+
         return HarvestEntryPage(
           onBack: () => _setCurrentPage('cultivation-detail/$harvestCultivationId'),
           onSave: () => _setCurrentPage('cultivation-detail/$harvestCultivationId'),
-          cropId: 'TEMPORARY_CROP_ID_001',
-          cropName: 'Cherry Tomato',
+          cropId: cropId, // Use the real crop ID from params
+          cropName: cropName, // Use the real crop name from params
           cultivationId: harvestCultivationId,
         );
       case 'harvest-records':
         return HarvestRecordsPage(
-          onBack: () => _setCurrentPage('dashboard'),
+          onBack: () => _setCurrentPage('cultivation'),
         );
       case 'records':
         return RecordsPage(

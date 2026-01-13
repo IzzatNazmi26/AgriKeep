@@ -7,9 +7,10 @@ import 'package:agrikeep/utils/theme.dart';
 import 'package:agrikeep/models/cultivation.dart';
 import 'package:agrikeep/services/firebase_service.dart';
 
+
 class CultivationActivitiesPage extends StatefulWidget {
   final VoidCallback onBack;
-  final void Function(String)? onNavigate;
+  final void Function(String, {Map<String, dynamic>? params})? onNavigate;
 
   const CultivationActivitiesPage({
     super.key,
@@ -267,8 +268,10 @@ class _CultivationActivitiesPageState extends State<CultivationActivitiesPage> {
                             return CustomCard(
                               onTap: () {
                                 if (widget.onNavigate != null) {
-                                  // Add the cultivation ID to the route
-                                  widget.onNavigate!('cultivation-detail/${cultivation.id}');
+                                  // Pass the entire cultivation object as a parameter
+                                  widget.onNavigate!('cultivation-detail/${cultivation.id}', params: {
+                                    'cultivation': cultivation,
+                                  });
                                 }
                               },
                               child: Column(
