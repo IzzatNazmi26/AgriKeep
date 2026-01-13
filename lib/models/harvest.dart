@@ -9,6 +9,7 @@ class Harvest {
   final double quantityKg; // Always in kg
   final String? note; // Optional short note
   final DateTime createdAt;
+  final String? cultivationId; // ADD THIS - link to specific cultivation
 
   Harvest({
     required this.id,
@@ -19,6 +20,7 @@ class Harvest {
     required this.quantityKg,
     this.note,
     required this.createdAt,
+    this.cultivationId, // ADD THIS
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +33,7 @@ class Harvest {
       'quantityKg': quantityKg,
       'note': note,
       'createdAt': createdAt.millisecondsSinceEpoch,
+      'cultivationId': cultivationId, // ADD THIS
     };
   }
 
@@ -44,6 +47,7 @@ class Harvest {
       quantityKg: (data['quantityKg'] ?? 0.0).toDouble(),
       note: data['note'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(data['createdAt'] ?? 0),
+      cultivationId: data['cultivationId'], // ADD THIS
     );
   }
 
@@ -57,6 +61,7 @@ class Harvest {
       quantityKg: (map['quantityKg'] ?? 0.0).toDouble(),
       note: map['note'],
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
+      cultivationId: map['cultivationId'], // ADD THIS
     );
   }
 
@@ -69,6 +74,7 @@ class Harvest {
     double? quantityKg,
     String? note,
     DateTime? createdAt,
+    String? cultivationId, // ADD THIS
   }) {
     return Harvest(
       id: id ?? this.id,
@@ -79,6 +85,7 @@ class Harvest {
       quantityKg: quantityKg ?? this.quantityKg,
       note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
+      cultivationId: cultivationId ?? this.cultivationId, // ADD THIS
     );
   }
 

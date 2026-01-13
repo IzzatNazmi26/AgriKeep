@@ -116,6 +116,21 @@ class FirebaseService {
     return snapshot.docs.map((doc) => Harvest.fromFirestore(doc.id, doc.data())).toList();
   }
 
+  // In firebase_service.dart, add a new method:
+  Future<List<Harvest>> getHarvestsByCultivationId(String cultivationId) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+
+    final snapshot = await _firestore
+        .collection('harvests')
+        .where('userId', isEqualTo: user.uid)
+        .where('cultivationId', isEqualTo: cultivationId) // Filter by cultivation
+        .orderBy('harvestDate', descending: true)
+        .get();
+
+    return snapshot.docs.map((doc) => Harvest.fromFirestore(doc.id, doc.data())).toList();
+  }
+
   Future<List<Harvest>> getHarvestsByCropId(String cropId) async {
     final user = _auth.currentUser;
     if (user == null) return [];

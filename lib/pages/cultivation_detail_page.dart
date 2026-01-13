@@ -101,20 +101,16 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
   @override
   void initState() {
     super.initState();
-    _loadCultivationData(); // ADD THIS
-    _loadActivities();
-    _loadHarvests(); // ADD THIS LINE
+
+    // Load cultivation data first, then other data
+    _loadCultivationData().then((_) {
+      // Only load harvests after cultivation data is available
+      if (_cultivation != null) {
+        _loadHarvests();
+      }
+      _loadActivities();
+    });
   }
-
-  // @override
-  // void didChangeDependencies() {
-  //   super.didChangeDependencies();
-  //   // Refresh when returning to this page
-  //   _loadActivities();
-  //   _loadHarvests(); // ADD THIS LINE
-  // }
-
-
 
   // ADD THIS METHOD to load cultivation data
   Future<void> _loadCultivationData() async {
@@ -132,19 +128,31 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
     }
   }
 
+  // Update _loadHarvests method in cultivation_detail_page.dart:
   Future<void> _loadHarvests() async {
     if (_user == null) return;
+
+    if (_cultivation == null) {
+      return;
+    }
 
     setState(() => _isLoadingHarvests = true);
 
     try {
-      // Use cropId from cropData instead of widget.cropId
-      final cropId = cropData.cropId;
-      final harvests = await _firebaseService.getHarvestsByCropId(cropId);
+      // CHANGE: Filter by cultivationId instead of cropId
+      final cultivationId = widget.cultivationId;
+      print('🌱 Loading harvests for cultivation ID: $cultivationId');
+
+      final harvests = await _firebaseService.getHarvestsByCultivationId(cultivationId);
+
+      // Sort harvests by date (newest first)
+      harvests.sort((a, b) => b.harvestDate.compareTo(a.harvestDate));
+
       setState(() {
         _harvests = harvests;
         _isLoadingHarvests = false;
       });
+      print('✅ Loaded ${harvests.length} harvests for cultivation: ${_cultivation!.cropName}');
     } catch (e) {
       print('❌ Error loading harvests: $e');
       setState(() => _isLoadingHarvests = false);
@@ -253,10 +261,13 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
               ),
             Expanded(
               child: RefreshIndicator(
+                // Update the refresh method in RefreshIndicator:
                 onRefresh: () async {
                   await _loadCultivationData();
+                  if (_cultivation != null) {
+                    await _loadHarvests();
+                  }
                   await _loadActivities();
-                  await _loadHarvests();
                 },
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
@@ -498,12 +509,15 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                             ),
                           ),
                           if (_harvests.isNotEmpty)
+                          // Update the "View All" button in the Harvest History section:
                             TextButton(
                               onPressed: () {
                                 if (widget.onNavigate != null) {
+                                  // Make sure we pass ALL necessary parameters
                                   widget.onNavigate!('harvest-records', params: {
-                                    'cropId': cropData.cropId,
-                                    'cropName': cropData.name,
+                                    'cropId': _cultivation!.cropId,
+                                    'cropName': _cultivation!.cropName,
+                                    'cultivationId': widget.cultivationId,  // This is crucial!
                                   });
                                 }
                               },
@@ -582,8 +596,8 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            // Recent harvests (show last 3)
-                            ..._harvests.take(3).map((harvest) {
+                            // Recent harvests (show last 5)
+                            ..._harvests.take(5).map((harvest) {
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 16),
                                 child: Row(
@@ -626,21 +640,22 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                                 ),
                               );
                             }).toList(),
-                            // View all button if there are more than 3
-                            if (_harvests.length > 3)
+                            // View all button if there are more than 5
+                            if (_harvests.length > 5)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
                                 child: TextButton(
                                   onPressed: () {
                                     if (widget.onNavigate != null) {
                                       widget.onNavigate!('harvest-records', params: {
-                                        'cropId': cropData.cropId,
-                                        'cropName': cropData.name,
+                                        'cropId': _cultivation!.cropId,  // Use the actual cropId
+                                        'cropName': _cultivation!.cropName,
+                                        'cultivationId': widget.cultivationId,  // Add cultivationId for navigation back
                                       });
                                     }
                                   },
                                   child: Text(
-                                    'View ${_harvests.length - 3} more harvests',
+                                    'View ${_harvests.length - 5} more harvests',  // Changed from -3 to -5
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,

@@ -47,11 +47,18 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
     _formData['harvestDate'] = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
   }
 
+  // In harvest_entry_page.dart, add debug prints:
   Future<void> _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSaving = true);
 
       try {
+        print('💾 Saving harvest for crop:');
+        print('   cropId: ${widget.cropId}');
+        print('   cropName: ${widget.cropName}');
+        print('   cultivationId: ${widget.cultivationId}');
+
+        // In _handleSubmit method of harvest_entry_page.dart:
         final harvest = Harvest(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           userId: '', // Will be set by FirebaseService
@@ -61,7 +68,10 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
           quantityKg: double.parse(_formData['quantityKg']),
           note: _formData['note'].isNotEmpty ? _formData['note'] : null,
           createdAt: DateTime.now(),
+          cultivationId: widget.cultivationId, // ADD THIS - link to specific cultivation
         );
+
+        // ... rest of the code
 
         // Save to Firebase
         await _firebaseService.addHarvest(harvest);

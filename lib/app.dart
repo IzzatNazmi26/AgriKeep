@@ -236,9 +236,34 @@ class _AppState extends State<App> {
           cropName: cropName, // Use the real crop name from params
           cultivationId: harvestCultivationId,
         );
+    // In app.dart, update the harvest-records route handling:
       case 'harvest-records':
+        final cropId = _currentPageParams?['cropId'];
+        final cropName = _currentPageParams?['cropName'];
+        final cultivationId = _currentPageParams?['cultivationId'];
+
+        print('📊 Navigating to harvest-records with params:');
+        print('   cropId: $cropId');
+        print('   cropName: $cropName');
+        print('   cultivationId: $cultivationId');
+
         return HarvestRecordsPage(
-          onBack: () => _setCurrentPage('cultivation'),
+          onBack: () {
+            print('🔙 Back button pressed from harvest-records');
+            print('   cultivationId from params: $cultivationId');
+
+            // Always go back to cultivation detail if we have cultivationId
+            if (cultivationId != null && cultivationId.isNotEmpty) {
+              print('   Navigating back to cultivation-detail/$cultivationId');
+              _setCurrentPage('cultivation-detail/$cultivationId');
+            } else {
+              print('   No cultivationId, navigating to cultivation list');
+              _setCurrentPage('cultivation');
+            }
+          },
+          cropId: cropId,
+          cropName: cropName,
+          cultivationId: cultivationId, // ADD THIS
         );
       case 'records':
         return RecordsPage(
