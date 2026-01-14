@@ -263,7 +263,7 @@ class FirebaseService {
     );
   }
 
-  // Yield Records
+ /* // Yield Records
   Future<List<YieldRecord>> getYieldRecords() async {
     final user = _auth.currentUser;
     if (user == null) return [];
@@ -284,7 +284,7 @@ class FirebaseService {
     await _firestore.collection('yield_records').add(
       record.copyWith(userId: user.uid).toMap(),
     );
-  }
+  }*/
 
   // Sales Records
   Future<List<SalesRecord>> getSalesRecords() async {

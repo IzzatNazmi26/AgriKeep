@@ -224,7 +224,7 @@ class MockData {
     updatedAt: DateTime.now(),
   );
 
-  // Yield Records - Updated for greenhouse crops
+  /*// Yield Records - Updated for greenhouse crops
   static final List<YieldRecord> mockYields = [
     YieldRecord(
       id: '1',
@@ -252,7 +252,7 @@ class MockData {
       performancePercentage: 121.3,
       createdAt: DateTime(2024, 2, 10),
     ),
-  ];
+  ];*/
 
   // Sales Records - Updated for greenhouse crops
   static final List<SalesRecord> mockSales = [
