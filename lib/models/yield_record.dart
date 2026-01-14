@@ -1,3 +1,4 @@
+/*
 class YieldRecord {
   final String id;
   final String userId;
@@ -112,4 +113,4 @@ class YieldRecord {
   String toString() {
     return 'YieldRecord(id: $id, cropName: $cropName, quantity: $quantity $unit, date: $date)';
   }
-}
+}*/
