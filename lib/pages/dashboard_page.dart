@@ -4,6 +4,7 @@ import 'package:agrikeep/widgets/card.dart';
 import 'package:agrikeep/utils/mock_data.dart';
 import 'package:agrikeep/utils/theme.dart';
 import 'package:agrikeep/models/cultivation.dart';
+import 'package:agrikeep/models/sales_record.dart'; // ADD THIS IMPORT
 import 'package:agrikeep/services/firebase_service.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -21,7 +22,9 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final FirebaseService _firebaseService = FirebaseService();
   List<Cultivation> _cultivations = [];
+  List<SalesRecord> _salesRecords = []; // ADD THIS
   int _activeCount = 0;
+  double _totalRevenue = 0.0; // ADD THIS
   bool _isLoading = true;
 
   @override
@@ -33,12 +36,24 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
+      // Load cultivations
       final cultivations = await _firebaseService.getCultivations();
       final activeCultivations = await _firebaseService.getActiveCultivations();
 
+      // Load sales records
+      final salesRecords = await _firebaseService.getSalesRecords();
+
+      // Calculate total revenue
+      double totalRevenue = 0.0;
+      for (var record in salesRecords) {
+        totalRevenue += record.totalAmount;
+      }
+
       setState(() {
         _cultivations = cultivations;
+        _salesRecords = salesRecords; // SET SALES RECORDS
         _activeCount = activeCultivations.length;
+        _totalRevenue = totalRevenue; // SET REAL REVENUE
       });
     } catch (e) {
       print('Error loading dashboard data: $e');
@@ -134,11 +149,6 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildQuickStats() {
-    final totalYield = MockData.mockYields
-        .fold(0.0, (sum, record) => sum + record.quantity);
-    final totalRevenue = MockData.mockSales
-        .fold(0.0, (sum, record) => sum + record.totalAmount);
-
     return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -166,7 +176,7 @@ class _DashboardPageState extends State<DashboardPage> {
         StatCard(
           icon: Icons.attach_money,
           label: 'Revenue',
-          value: 'RM${totalRevenue.toInt()}',
+          value: _isLoading ? '...' : 'RM${_totalRevenue.toStringAsFixed(0)}', // USE REAL REVENUE
           color: AgriKeepTheme.infoColor,
           isLoading: _isLoading,
         ),
@@ -408,7 +418,7 @@ class _DashboardPageState extends State<DashboardPage> {
         color: AgriKeepTheme.secondaryColor,
       ),
       _MenuItem(
-        id: 'sales',
+        id: 'salesrecords',
         icon: Icons.attach_money,
         title: 'Sales Record',
         description: 'Manage crop sales and revenue',
@@ -419,7 +429,7 @@ class _DashboardPageState extends State<DashboardPage> {
         icon: Icons.menu_book,
         title: 'Crop Information',
         description: 'Learn about different crops',
-        color: const Color(0xFF8B5CF6), // purple
+        color: const Color(0xFF8B5CF6),
       ),
     ];
 
@@ -554,7 +564,6 @@ class _MenuItem {
   });
 }
 
-// Custom StatCard widget with loading state
 class StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -625,7 +634,6 @@ class StatCard extends StatelessWidget {
   }
 }
 
-// CustomButton widget (you might need to adjust this based on your existing CustomButton)
 class CustomButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;

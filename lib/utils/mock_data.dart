@@ -49,7 +49,7 @@ class MockData {
 
     Crop(
       id: '3',
-      name: 'Capsicum (Bell Pepper)',
+      name: 'Capsicum ',
       season: 'Year-round (Greenhouse)',
       duration: '90–120 days',
       waterRequirement: 'Moderate',
@@ -150,7 +150,7 @@ class MockData {
     // 8. Long Bean - Covers 'Low' water, 'Sandy' soil
     Crop(
       id: '8',
-      name: 'Long Bean (Kacang Panjang)',
+      name: 'Long Bean ',
       season: 'Year-round (Greenhouse)',
       duration: '45–60 days',
       waterRequirement: 'Low',
@@ -190,7 +190,7 @@ class MockData {
     // 10. Kai Lan - Very short cycle, covers 'Shaded'
     Crop(
       id: '10',
-      name: 'Kai Lan (Chinese Kale)',
+      name: 'Kai Lan ',
       season: 'Year-round (Greenhouse)',
       duration: '40–50 days',
       waterRequirement: 'Moderate',

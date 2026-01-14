@@ -265,6 +265,11 @@ class _AppState extends State<App> {
           cropName: cropName,
           cultivationId: cultivationId, // ADD THIS
         );
+      case 'salesrecords':
+        return RecordsPage(
+          onBack: () => _setCurrentPage('dashboard'),
+          onNavigate: _setCurrentPage,
+        );
       case 'records':
         return RecordsPage(
           onBack: () => _setCurrentPage('dashboard'),

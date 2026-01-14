@@ -309,6 +309,41 @@ class FirebaseService {
     );
   }
 
+  // Find the existing addSalesRecord() method (around line 250)
+// Add these 3 new methods AFTER it:
+
+  Future<void> updateSalesRecord(SalesRecord record) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('sales_records')
+        .doc(record.id)
+        .update(record.copyWith(userId: user.uid).toMap());
+  }
+
+  Future<void> deleteSalesRecord(String recordId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore.collection('sales_records').doc(recordId).delete();
+  }
+
+  Future<SalesRecord?> getSalesRecordById(String recordId) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final doc = await _firestore
+        .collection('sales_records')
+        .doc(recordId)
+        .get();
+
+    if (doc.exists) {
+      return SalesRecord.fromFirestore(doc.id, doc.data()!);
+    }
+    return null;
+  }
+
   // Analytics
   Future<Map<String, dynamic>> getAnalytics(String timeRange) async {
     final user = _auth.currentUser;
