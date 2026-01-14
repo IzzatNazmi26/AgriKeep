@@ -12,7 +12,6 @@ import 'package:agrikeep/pages/cultivation_activities_page.dart';
 import 'package:agrikeep/pages/cultivation_detail_page.dart';
 import 'package:agrikeep/pages/harvest_entry_page.dart';
 import 'package:agrikeep/pages/records_page.dart';
-import 'package:agrikeep/pages/analytics_page.dart';
 import 'package:agrikeep/pages/crop_information_page.dart';
 import 'package:agrikeep/pages/profile_page.dart';
 import 'package:agrikeep/pages/settings_page.dart';
