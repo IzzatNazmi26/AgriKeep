@@ -14,7 +14,7 @@ import 'package:agrikeep/pages/harvest_entry_page.dart';
 import 'package:agrikeep/pages/records_page.dart';
 import 'package:agrikeep/pages/crop_information_page.dart';
 import 'package:agrikeep/pages/profile_page.dart';
-import 'package:agrikeep/pages/settings_page.dart';
+import 'package:agrikeep/pages/editprofile_page.dart';
 import 'package:agrikeep/pages/providers/auth_provider.dart';
 import 'package:agrikeep/pages/weekly_act_page.dart';
 import 'package:agrikeep/pages/add_cultivation_page.dart';
@@ -154,7 +154,6 @@ class _AppState extends State<App> {
 
   Widget _buildMainApp() {
     // Handle dynamic cultivation-detail route with ID
-    // In the _buildMainApp() method, update the cultivation-detail route handling:
     if (_currentPage.startsWith('cultivation-detail/')) {
       final parts = _currentPage.split('/');
       if (parts.length >= 2) {
@@ -202,7 +201,10 @@ class _AppState extends State<App> {
     // Handle other routes
     switch (_currentPage) {
       case 'dashboard':
-        return DashboardPage(onNavigate: _setCurrentPage);
+        return DashboardPage(
+          onNavigate: _setCurrentPage,
+          onLogout: _handleLogout, // ADDED onLogout
+        );
       case 'recommendations':
         return RecommendationsPage(onBack: () => _setCurrentPage('dashboard'));
       case 'cultivation':
@@ -235,7 +237,6 @@ class _AppState extends State<App> {
           cropName: cropName, // Use the real crop name from params
           cultivationId: harvestCultivationId,
         );
-    // In app.dart, update the harvest-records route handling:
       case 'harvest-records':
         final cropId = _currentPageParams?['cropId'];
         final cropName = _currentPageParams?['cropName'];
@@ -276,16 +277,19 @@ class _AppState extends State<App> {
         );
       case 'crop-info':
         return CropInformationPage(onBack: () => _setCurrentPage('dashboard'));
+    // In app.dart, find where ProfilePage is created (around line 250):
       case 'profile':
         return ProfilePage(
           onBack: () => _setCurrentPage('dashboard'),
-          onLogout: _handleLogout,
           onNavigate: _setCurrentPage,
         );
-      case 'settings':
-        return SettingsPage(onBack: () => _setCurrentPage('profile'));
+      case 'profile-edit':
+        return EditProfilePage(onBack: () => _setCurrentPage('profile'));
       default:
-        return DashboardPage(onNavigate: _setCurrentPage);
+        return DashboardPage(
+          onNavigate: _setCurrentPage,
+          onLogout: _handleLogout, // ADDED onLogout to default case too
+        );
     }
   }
 }

@@ -5,7 +5,6 @@ import 'package:agrikeep/utils/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:agrikeep/pages/providers/auth_provider.dart';
 
-
 class LoginPage extends StatefulWidget {
   final VoidCallback onLogin;
   final VoidCallback onSignUp;
@@ -24,13 +23,13 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController(); // Changed from emailController
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -43,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     await authProvider.signInWithUsernameOrEmail(
-      _emailController.text.trim(),
+      _identifierController.text.trim(),
       _passwordController.text.trim(),
     );
 
@@ -53,10 +52,11 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(authProvider.error!)),
       );
-      authProvider.clearError();
+      //authProvider.clearError();
     }
-  }
 
+    // If login successful, the auth state listener in App.dart will handle navigation
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,15 +107,16 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   children: [
                     InputField(
-                      label: 'Email or Username',
-                      controller: _emailController,
+                      label: 'Username or Email', // Updated label
+                      controller: _identifierController, // Updated controller name
                       keyboardType: TextInputType.emailAddress,
-                      hintText: 'Enter your email or username',
+                      hintText: 'Enter your username or email',
                       required: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your email or username';
+                          return 'Please enter your username or email';
                         }
+                        // Basic validation - at least something entered
                         return null;
                       },
                     ),

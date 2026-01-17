@@ -214,7 +214,7 @@ class MockData {
   static final FarmProfile mockFarmProfile = FarmProfile(
     id: '1',
     userId: 'user123',
-    farmName: 'Greenhouse Farm Malaysia',
+    farmName: 'Greenhouse Farm Malaysiaaa',
     location: 'Selangor, Malaysia',
     totalArea: 0.5, // 0.5 hectare typical for smallholder
     soilType: 'Loamy',
@@ -254,35 +254,35 @@ class MockData {
     ),
   ];*/
 
-  // Sales Records - Updated for greenhouse crops
-  static final List<SalesRecord> mockSales = [
-    SalesRecord(
-      id: '1',
-      userId: 'user123',
-      cropId: '1',
-      cropName: 'Cherry Tomato',
-      quantity: 25.5,
-      unit: 'kg',
-      pricePerUnit: 8.0, // RM 8/kg
-      totalAmount: 204.0,
-      buyer: 'Local Market',
-      date: DateTime(2024, 2, 16),
-      createdAt: DateTime(2024, 2, 16),
-    ),
-    SalesRecord(
-      id: '2',
-      userId: 'user123',
-      cropId: '2',
-      cropName: 'Cucumber',
-      quantity: 18.2,
-      unit: 'kg',
-      pricePerUnit: 3.0, // RM 3/kg
-      totalAmount: 54.6,
-      buyer: 'Vegetable Supplier',
-      date: DateTime(2024, 2, 11),
-      createdAt: DateTime(2024, 2, 11),
-    ),
-  ];
+  // // Sales Records - Updated for greenhouse crops
+  // static final List<SalesRecord> mockSales = [
+  //   SalesRecord(
+  //     id: '1',
+  //     userId: 'user123',
+  //     cropId: '1',
+  //     cropName: 'Cherry Tomato',
+  //     quantity: 25.5,
+  //     unit: 'kg',
+  //     pricePerUnit: 8.0, // RM 8/kg
+  //     totalAmount: 204.0,
+  //     buyer: 'Local Market',
+  //     date: DateTime(2024, 2, 16),
+  //     createdAt: DateTime(2024, 2, 16),
+  //   ),
+  //   SalesRecord(
+  //     id: '2',
+  //     userId: 'user123',
+  //     cropId: '2',
+  //     cropName: 'Cucumber',
+  //     quantity: 18.2,
+  //     unit: 'kg',
+  //     pricePerUnit: 3.0, // RM 3/kg
+  //     totalAmount: 54.6,
+  //     buyer: 'Vegetable Supplier',
+  //     date: DateTime(2024, 2, 11),
+  //     createdAt: DateTime(2024, 2, 11),
+  //   ),
+  // ];
 
   // Get crop by ID
   static Crop getCropById(String id) {

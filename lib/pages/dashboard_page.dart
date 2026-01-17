@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:agrikeep/widgets/header.dart';
 import 'package:agrikeep/widgets/card.dart';
-import 'package:agrikeep/utils/mock_data.dart';
 import 'package:agrikeep/utils/theme.dart';
 import 'package:agrikeep/models/cultivation.dart';
-import 'package:agrikeep/models/sales_record.dart'; // ADD THIS IMPORT
+import 'package:agrikeep/models/sales_record.dart';
 import 'package:agrikeep/services/firebase_service.dart';
+import 'package:provider/provider.dart';
+import 'package:agrikeep/pages/providers/auth_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   final Function(String) onNavigate;
+  final VoidCallback onLogout;
 
   const DashboardPage({
     super.key,
     required this.onNavigate,
+    required this.onLogout,
   });
 
   @override
@@ -22,9 +25,10 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final FirebaseService _firebaseService = FirebaseService();
   List<Cultivation> _cultivations = [];
-  List<SalesRecord> _salesRecords = []; // ADD THIS
+  List<SalesRecord> _salesRecords = [];
   int _activeCount = 0;
-  double _totalRevenue = 0.0; // ADD THIS
+  double _totalRevenue = 0.0;
+  String _farmName = 'Loading...';
   bool _isLoading = true;
 
   @override
@@ -43,6 +47,9 @@ class _DashboardPageState extends State<DashboardPage> {
       // Load sales records
       final salesRecords = await _firebaseService.getSalesRecords();
 
+      // Load farm profile for real farm name
+      final farmProfile = await _firebaseService.getFarmProfile();
+
       // Calculate total revenue
       double totalRevenue = 0.0;
       for (var record in salesRecords) {
@@ -51,9 +58,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
       setState(() {
         _cultivations = cultivations;
-        _salesRecords = salesRecords; // SET SALES RECORDS
+        _salesRecords = salesRecords;
         _activeCount = activeCultivations.length;
-        _totalRevenue = totalRevenue; // SET REAL REVENUE
+        _totalRevenue = totalRevenue;
+        _farmName = farmProfile?.farmName ?? 'Your Farm';
       });
     } catch (e) {
       print('Error loading dashboard data: $e');
@@ -68,17 +76,20 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final username = authProvider.currentUser?.username ?? 'Farmer';
+
     return Scaffold(
       backgroundColor: AgriKeepTheme.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            // Header with settings button
+            // Header with profile button
             AppHeader(
               title: 'Dashboard',
               action: IconButton(
-                onPressed: () => widget.onNavigate('settings'),
-                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => widget.onNavigate('profile'),
+                icon: const Icon(Icons.person_outline),
                 color: AgriKeepTheme.textPrimary,
                 splashRadius: 20,
               ),
@@ -95,7 +106,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Welcome section
-                      _buildWelcomeSection(),
+                      _buildWelcomeSection(username),
                       const SizedBox(height: 24),
 
                       // Quick stats
@@ -110,8 +121,12 @@ class _DashboardPageState extends State<DashboardPage> {
                       _buildFeaturesMenu(),
                       const SizedBox(height: 24),
 
-                      // Profile quick access
+                      // Profile quick access (KEEP THIS!)
                       _buildProfileQuickAccess(),
+                      const SizedBox(height: 16),
+
+                      // Logout button at bottom
+                      _buildLogoutButton(),
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -124,12 +139,12 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildWelcomeSection() {
+  Widget _buildWelcomeSection(String username) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Welcome back! 🌱',
+          'Welcome back, $username! 🌱',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -138,7 +153,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          MockData.mockFarmProfile.farmName,
+          _farmName,
           style: TextStyle(
             fontSize: 16,
             color: AgriKeepTheme.textSecondary,
@@ -176,7 +191,7 @@ class _DashboardPageState extends State<DashboardPage> {
         StatCard(
           icon: Icons.attach_money,
           label: 'Revenue',
-          value: _isLoading ? '...' : 'RM${_totalRevenue.toStringAsFixed(0)}', // USE REAL REVENUE
+          value: _isLoading ? '...' : 'RM${_totalRevenue.toStringAsFixed(0)}',
           color: AgriKeepTheme.infoColor,
           isLoading: _isLoading,
         ),
@@ -332,7 +347,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
             return CustomCard(
               onTap: () {
-                // Pass the cultivation ID in the route
                 widget.onNavigate('cultivation-detail/${cultivation.id}');
               },
               child: Column(
@@ -546,6 +560,64 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+
+  Widget _buildLogoutButton() {
+    return CustomCard(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Logout'),
+            content: const Text('Are you sure you want to logout?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.onLogout();
+                },
+                child: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.logout,
+                size: 20,
+                color: AgriKeepTheme.errorColor,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Logout',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AgriKeepTheme.errorColor,
+                ),
+              ),
+            ],
+          ),
+          Icon(
+            Icons.chevron_right,
+            size: 20,
+            color: AgriKeepTheme.errorColor,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MenuItem {
@@ -563,6 +635,8 @@ class _MenuItem {
     required this.color,
   });
 }
+
+// StatCard and CustomButton classes remain the same as before
 
 class StatCard extends StatelessWidget {
   final IconData icon;

@@ -4,9 +4,6 @@ import 'package:agrikeep/widgets/input_field.dart';
 import 'package:agrikeep/utils/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:agrikeep/pages/providers/auth_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-//import 'package:firebase_auth/firebase_auth.dart';
-
 
 class SignUpPage extends StatefulWidget {
   final VoidCallback onSignUp;
@@ -28,11 +25,26 @@ class _SignUpPageState extends State<SignUpPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _farmNameController = TextEditingController();
-  final _locationController = TextEditingController();
+  // REMOVED: _fullNameController
+  final _countryController = TextEditingController();
 
   bool _isLoading = false;
   bool _passwordsVisible = false;
+
+  // List of countries (you can expand this list)
+  final List<String> _countryOptions = [
+    'Malaysia',
+    'Indonesia',
+    'Singapore',
+    'Thailand',
+    'Vietnam',
+    'Philippines',
+    'Brunei',
+    'Cambodia',
+    'Laos',
+    'Myanmar',
+    // Add more countries as needed
+  ];
 
   @override
   void dispose() {
@@ -40,8 +52,8 @@ class _SignUpPageState extends State<SignUpPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _farmNameController.dispose();
-    _locationController.dispose();
+    // REMOVED: _fullNameController.dispose();
+    _countryController.dispose();
     super.dispose();
   }
 
@@ -62,10 +74,12 @@ class _SignUpPageState extends State<SignUpPage> {
 
     setState(() => _isLoading = true);
 
-    // 1️⃣ Create Firebase Auth account
+    // Use the updated signup method WITHOUT fullName
     await authProvider.signUpWithEmailPassword(
       _emailController.text.trim(),
       _passwordController.text.trim(),
+      _usernameController.text.trim(),
+      _countryController.text.trim(), // Country only, no fullName
     );
 
     setState(() => _isLoading = false);
@@ -74,31 +88,14 @@ class _SignUpPageState extends State<SignUpPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(authProvider.error!)),
       );
-      authProvider.clearError();
+      //authProvider.clearError();
       return;
     }
 
-    // 2️⃣ Save extra user data to Firestore
-    final user = authProvider.user;
-    if (user != null) {
-      final username = _usernameController.text.trim().toLowerCase();
-
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .set({
-        'email': user.email,
-        'username': username,
-        'farmName': _farmNameController.text.trim(),
-        'location': _locationController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-    }
+    // If signup successful, proceed to next step
+    widget.onSignUp();
+    print('✅ User created with ID: ${authProvider.firebaseUser?.uid}');
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +145,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 key: _formKey,
                 child: Column(
                   children: [
+                    // Username field
                     InputField(
                       label: 'Username',
                       controller: _usernameController,
@@ -163,11 +161,17 @@ class _SignUpPageState extends State<SignUpPage> {
                         if (value.length < 3) {
                           return 'Username must be at least 3 characters';
                         }
+                        // Check for special characters
+                        final validCharacters = RegExp(r'^[a-zA-Z0-9_]+$');
+                        if (!validCharacters.hasMatch(value)) {
+                          return 'Only letters, numbers, and underscores allowed';
+                        }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
 
+                    // Email field
                     InputField(
                       label: 'Email Address',
                       controller: _emailController,
@@ -178,13 +182,15 @@ class _SignUpPageState extends State<SignUpPage> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email address';
                         }
-                        if (!value.contains('@')) {
+                        if (!value.contains('@') || !value.contains('.')) {
                           return 'Please enter a valid email address';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Password field
                     InputField(
                       label: 'Password',
                       controller: _passwordController,
@@ -213,6 +219,8 @@ class _SignUpPageState extends State<SignUpPage> {
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Confirm Password field
                     InputField(
                       label: 'Confirm Password',
                       controller: _confirmPasswordController,
@@ -227,31 +235,26 @@ class _SignUpPageState extends State<SignUpPage> {
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // REMOVED: Full Name field
+
+                    // Country field with dropdown
                     InputField(
-                      label: 'Farm Name',
-                      controller: _farmNameController,
-                      hintText: 'e.g., Green Valley Farm',
+                      label: 'Country',
+                      controller: _countryController,
+                      hintText: 'Select your country',
+                      options: _countryOptions,
+                      selectedOption: _countryController.text.isNotEmpty ? _countryController.text : null,
+                      onOptionSelected: (value) => setState(() => _countryController.text = value ?? ''),
                       required: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your farm name';
+                          return 'Please select your country';
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
-                    InputField(
-                      label: 'Location',
-                      controller: _locationController,
-                      hintText: 'City, State/Province',
-                      required: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your location';
-                        }
-                        return null;
-                      },
-                    ),
+
                     const SizedBox(height: 24),
                     CustomButton(
                       text: 'Create Account',
