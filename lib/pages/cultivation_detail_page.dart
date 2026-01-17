@@ -394,28 +394,28 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                           mainAxisSpacing: 12,
                           childAspectRatio: 0.9,
                         ),
-                        children: [
-                          _buildQuickStat(
-                            icon: Icons.water_drop,
-                            label: 'Water',
-                            value: 'Regular',
-                            color: AgriKeepTheme.infoColor,
-                          ),
-                          _buildQuickStat(
-                            icon: Icons.agriculture,
-                            label: 'Fertilizer',
-                            value: '3 times',
-                            color: AgriKeepTheme.secondaryColor,
-                          ),
-                          _buildQuickStat(
-                            icon: Icons.warning,
-                            label: 'Issues',
-                            value: 'None',
-                            color: AgriKeepTheme.successColor,
-                          ),
-                        ],
+                        // children: [
+                        //   _buildQuickStat(
+                        //     icon: Icons.water_drop,
+                        //     label: 'Water',
+                        //     value: 'Regular',
+                        //     color: AgriKeepTheme.infoColor,
+                        //   ),
+                        //   _buildQuickStat(
+                        //     icon: Icons.agriculture,
+                        //     label: 'Fertilizer',
+                        //     value: '3 times',
+                        //     color: AgriKeepTheme.secondaryColor,
+                        //   ),
+                        //   _buildQuickStat(
+                        //     icon: Icons.warning,
+                        //     label: 'Issues',
+                        //     value: 'None',
+                        //     color: AgriKeepTheme.successColor,
+                        //   ),
+                        // ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
 
                       // Activity timeline
                       Row(
