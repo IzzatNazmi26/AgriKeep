@@ -20,8 +20,8 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController(); // Changed from _fullNameController
-  final _countryController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _stateController = TextEditingController();
   final _phoneController = TextEditingController();
 
@@ -38,8 +38,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final user = authProvider.currentUser;
 
     if (user != null) {
-      _usernameController.text = user.username; // Changed from user.fullName
-      _countryController.text = user.country ?? '';
+      _usernameController.text = user.username;
+      _emailController.text = user.email ?? '';
       _stateController.text = user.state ?? '';
       _phoneController.text = user.phoneNumber ?? '';
     }
@@ -54,9 +54,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     try {
       await authProvider.updateUserProfile(
-        username: _usernameController.text.trim(), // Changed from fullName
-        country: _countryController.text.trim(),
-        state: _stateController.text.trim(),
+        username: _usernameController.text.trim(),
+        state: _stateController.text.trim().isNotEmpty
+            ? _stateController.text.trim()
+            : null,
         phoneNumber: _phoneController.text.trim().isNotEmpty
             ? _phoneController.text.trim()
             : null,
@@ -89,7 +90,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void dispose() {
     _usernameController.dispose();
-    _countryController.dispose();
+    _emailController.dispose();
     _stateController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -97,6 +98,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    final user = authProvider.currentUser;
+
     return Scaffold(
       backgroundColor: AgriKeepTheme.backgroundColor,
       body: SafeArea(
@@ -132,7 +136,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Changed from Full Name to Username
+                      // Email field (display only, not editable)
+                      InputField(
+                        label: 'Email',
+                        controller: _emailController,
+                        hintText: 'Enter your email',
+                        enabled: false, // Make it non-editable
+                        validator: (value) {
+                          // Email is required but not editable
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Username field
                       InputField(
                         label: 'Username',
                         controller: _usernameController,
@@ -153,20 +170,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 16),
 
-                      InputField(
-                        label: 'Country',
-                        controller: _countryController,
-                        hintText: 'Enter your country',
-                        required: true,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your country';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
+                      // State field (optional)
                       InputField(
                         label: 'State/Region',
                         controller: _stateController,
@@ -178,6 +182,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Phone field (optional)
                       InputField(
                         label: 'Phone Number',
                         controller: _phoneController,

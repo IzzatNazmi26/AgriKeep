@@ -7,12 +7,12 @@ import 'package:agrikeep/pages/providers/auth_provider.dart';
 
 class ProfilePage extends StatelessWidget {
   final VoidCallback onBack;
-  final Function(String)? onNavigate; // Removed onLogout
+  final Function(String)? onNavigate;
 
   const ProfilePage({
     super.key,
     required this.onBack,
-    this.onNavigate, // Removed required this.onLogout
+    this.onNavigate,
   });
 
   @override
@@ -53,7 +53,7 @@ class ProfilePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            user?.username ?? 'Loading...', // Changed from fullName to username
+                            user?.username ?? 'Loading...',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -61,13 +61,6 @@ class ProfilePage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            user?.email ?? 'Loading...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AgriKeepTheme.textSecondary,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -94,9 +87,9 @@ class ProfilePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           _buildDetailRow(
-                            icon: Icons.location_on,
-                            label: 'Country',
-                            value: user?.country ?? 'Not set',
+                            icon: Icons.email, // Added email icon
+                            label: 'Email',
+                            value: user?.email ?? 'Not set',
                           ),
                           const SizedBox(height: 12),
                           _buildDetailRow(
