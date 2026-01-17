@@ -28,7 +28,6 @@ class _DashboardPageState extends State<DashboardPage> {
   List<SalesRecord> _salesRecords = [];
   int _activeCount = 0;
   double _totalRevenue = 0.0;
-  String _farmName = 'Loading...';
   bool _isLoading = true;
 
   @override
@@ -47,9 +46,6 @@ class _DashboardPageState extends State<DashboardPage> {
       // Load sales records
       final salesRecords = await _firebaseService.getSalesRecords();
 
-      // Load farm profile for real farm name
-      final farmProfile = await _firebaseService.getFarmProfile();
-
       // Calculate total revenue
       double totalRevenue = 0.0;
       for (var record in salesRecords) {
@@ -61,7 +57,6 @@ class _DashboardPageState extends State<DashboardPage> {
         _salesRecords = salesRecords;
         _activeCount = activeCultivations.length;
         _totalRevenue = totalRevenue;
-        _farmName = farmProfile?.farmName ?? 'Your Farm';
       });
     } catch (e) {
       print('Error loading dashboard data: $e');
@@ -152,13 +147,13 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
         const SizedBox(height: 4),
-        // Text(
-        //   _farmName,
-        //   style: TextStyle(
-        //     fontSize: 16,
-        //     color: AgriKeepTheme.textSecondary,
-        //   ),
-        // ),
+        Text(
+          'Ready to manage your farm?',
+          style: TextStyle(
+            fontSize: 16,
+            color: AgriKeepTheme.textSecondary,
+          ),
+        ),
       ],
     );
   }
