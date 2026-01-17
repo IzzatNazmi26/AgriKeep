@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
       //authProvider.clearError();
     }
 
-    // If login successful, the auth state listener in App.dart will handle navigation
+    // If login successful, the auth state listener in App.dart will handle navigation.
   }
 
   @override

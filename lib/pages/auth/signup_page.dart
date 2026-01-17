@@ -94,7 +94,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
     setState(() => _isLoading = true);
 
-    // Use the updated signup method with phone and state
+    // Use the updated signup method with phone and state.
     await authProvider.signUpWithEmailPassword(
       _emailController.text.trim(),
       _passwordController.text.trim(),
