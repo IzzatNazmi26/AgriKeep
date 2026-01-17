@@ -25,25 +25,30 @@ class _SignUpPageState extends State<SignUpPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  // REMOVED: _fullNameController
-  final _countryController = TextEditingController();
+  final _phoneController = TextEditingController(); // ADDED
+  final _stateController = TextEditingController(); // CHANGED from country
 
   bool _isLoading = false;
   bool _passwordsVisible = false;
 
-  // List of countries (you can expand this list)
-  final List<String> _countryOptions = [
-    'Malaysia',
-    'Indonesia',
-    'Singapore',
-    'Thailand',
-    'Vietnam',
-    'Philippines',
-    'Brunei',
-    'Cambodia',
-    'Laos',
-    'Myanmar',
-    // Add more countries as needed
+  // CHANGED: Malaysian states instead of countries
+  final List<String> _stateOptions = [
+    'Johor',
+    'Kedah',
+    'Kelantan',
+    'Melaka',
+    'Negeri Sembilan',
+    'Pahang',
+    'Perak',
+    'Perlis',
+    'Pulau Pinang',
+    'Sabah',
+    'Sarawak',
+    'Selangor',
+    'Terengganu',
+    'Kuala Lumpur',
+    'Labuan',
+    'Putrajaya',
   ];
 
   @override
@@ -52,9 +57,24 @@ class _SignUpPageState extends State<SignUpPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    // REMOVED: _fullNameController.dispose();
-    _countryController.dispose();
+    _phoneController.dispose(); // ADDED
+    _stateController.dispose(); // CHANGED
     super.dispose();
+  }
+
+  // Malaysian phone number validation
+  bool _isValidMalaysianPhone(String phone) {
+    // Remove any spaces, dashes, or plus signs
+    final cleanedPhone = phone.replaceAll(RegExp(r'[\s\-+]'), '');
+
+    // Check if it starts with 01 and has 10-11 digits total
+    if (!cleanedPhone.startsWith('01')) return false;
+
+    // Check length: 01 followed by 8-9 digits = 10-11 total
+    if (cleanedPhone.length < 10 || cleanedPhone.length > 11) return false;
+
+    // Check if all characters are digits
+    return RegExp(r'^[0-9]+$').hasMatch(cleanedPhone);
   }
 
   Future<void> _handleSignUp() async {
@@ -74,12 +94,13 @@ class _SignUpPageState extends State<SignUpPage> {
 
     setState(() => _isLoading = true);
 
-    // Use the updated signup method WITHOUT fullName
+    // Use the updated signup method with phone and state
     await authProvider.signUpWithEmailPassword(
       _emailController.text.trim(),
       _passwordController.text.trim(),
       _usernameController.text.trim(),
-      _countryController.text.trim(), // Country only, no fullName
+      _stateController.text.trim(), // CHANGED: state instead of country
+      _phoneController.text.trim(), // ADDED: phone number
     );
 
     setState(() => _isLoading = false);
@@ -88,7 +109,6 @@ class _SignUpPageState extends State<SignUpPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(authProvider.error!)),
       );
-      //authProvider.clearError();
       return;
     }
 
@@ -190,6 +210,41 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                     const SizedBox(height: 16),
 
+                    // ADDED: Phone number field
+                    InputField(
+                      label: 'Phone Number',
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      hintText: '01XXXXXXXX (10-11 digits)',
+                      required: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number';
+                        }
+
+                        // Clean the phone number for validation
+                        final cleanedPhone = value.replaceAll(RegExp(r'[\s\-+]'), '');
+
+                        // Check if it starts with 01
+                        if (!cleanedPhone.startsWith('01')) {
+                          return 'Malaysian phone must start with 01';
+                        }
+
+                        // Check length
+                        if (cleanedPhone.length < 10 || cleanedPhone.length > 11) {
+                          return 'Phone must be 10-11 digits (including 01)';
+                        }
+
+                        // Check if all digits
+                        if (!RegExp(r'^[0-9]+$').hasMatch(cleanedPhone)) {
+                          return 'Phone must contain only numbers';
+                        }
+
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
                     // Password field
                     InputField(
                       label: 'Password',
@@ -236,20 +291,18 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // REMOVED: Full Name field
-
-                    // Country field with dropdown
+                    // CHANGED: State field instead of country
                     InputField(
-                      label: 'Country',
-                      controller: _countryController,
-                      hintText: 'Select your country',
-                      options: _countryOptions,
-                      selectedOption: _countryController.text.isNotEmpty ? _countryController.text : null,
-                      onOptionSelected: (value) => setState(() => _countryController.text = value ?? ''),
+                      label: 'State',
+                      controller: _stateController,
+                      hintText: 'Select your state',
+                      options: _stateOptions,
+                      selectedOption: _stateController.text.isNotEmpty ? _stateController.text : null,
+                      onOptionSelected: (value) => setState(() => _stateController.text = value ?? ''),
                       required: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please select your country';
+                          return 'Please select your state';
                         }
                         return null;
                       },

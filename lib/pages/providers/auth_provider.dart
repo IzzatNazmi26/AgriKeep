@@ -87,69 +87,70 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // In auth_provider.dart - Update the signUpWithEmailPassword method
   Future<void> signUpWithEmailPassword(
       String email,
       String password,
-      String username, // Changed: removed fullName parameter
-      String country,
+      String username,
+      String state,
+      String phoneNumber,
       ) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      // 1. Check if username exists
-      final usernameCheck = await FirebaseFirestore.instance
-          .collection('users')
-          .where('username', isEqualTo: username.toLowerCase())
-          .limit(1)
-          .get();
+      print('🔄 Starting signup for: $email');
 
-      if (usernameCheck.docs.isNotEmpty) {
-        throw FirebaseAuthException(
-          code: 'username-exists',
-          message: 'Username already taken',
-        );
-      }
-
-      // 2. Create Firebase Auth user
+      // 1. First create Firebase Auth user
+      print('1. Creating Firebase Auth user...');
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
+      print('✅ Firebase Auth user created: ${userCredential.user?.uid}');
+
       final user = userCredential.user;
       if (user != null) {
-        // 3. Save to Firestore - SIMPLE DIRECT SAVE
+        // 2. Save to Firestore
+        print('2. Saving to Firestore...');
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .set({
           'email': email,
           'username': username.toLowerCase(),
-          'country': country,
+          'state': state,
+          'phoneNumber': phoneNumber,
           'createdAt': DateTime.now().millisecondsSinceEpoch,
           'updatedAt': DateTime.now().millisecondsSinceEpoch,
           'isEmailVerified': false,
         });
 
-        // 4. Create local user model
+        print('✅ Firestore document saved');
+
+        // 3. Create local model
         _currentUser = UserModel(
           id: user.uid,
           email: email,
           username: username.toLowerCase(),
-          country: country,
+          phoneNumber: phoneNumber,
+          state: state,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
           isEmailVerified: false,
         );
 
-        notifyListeners();
+        print('✅ Local user model created');
       }
+
+      notifyListeners();
     } on FirebaseAuthException catch (e) {
+      print('❌ FirebaseAuthException: ${e.code} - ${e.message}');
       _error = _getErrorMessage(e.code);
     } catch (e) {
+      print('❌ General error: $e');
+      print('❌ Error type: ${e.runtimeType}');
       _error = 'Failed to create account: $e';
     } finally {
       _isLoading = false;
@@ -176,9 +177,8 @@ class AuthProvider with ChangeNotifier {
           .collection('users')
           .doc(_currentUser!.id)
           .update({
-        'username': username ?? _currentUser!.username, // Changed from fullName
-        'country': country ?? _currentUser!.country,
-        'state': state ?? _currentUser!.state,
+        'username': username ?? _currentUser!.username,
+        'state': state ?? _currentUser!.state, // CHANGED: from country to state
         'phoneNumber': phoneNumber ?? _currentUser!.phoneNumber,
         'profileImageUrl': profileImageUrl ?? _currentUser!.profileImageUrl,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
@@ -186,14 +186,12 @@ class AuthProvider with ChangeNotifier {
 
       // Update local model
       _currentUser = _currentUser!.copyWith(
-        username: username ?? _currentUser!.username, // Changed from fullName
-        country: country ?? _currentUser!.country,
-        state: state ?? _currentUser!.state,
+        username: username ?? _currentUser!.username,
+        state: state ?? _currentUser!.state, // CHANGED: from country to state
         phoneNumber: phoneNumber ?? _currentUser!.phoneNumber,
         profileImageUrl: profileImageUrl ?? _currentUser!.profileImageUrl,
         updatedAt: DateTime.now(),
       );
-
       notifyListeners();
     } catch (e) {
       _error = 'Failed to update profile';

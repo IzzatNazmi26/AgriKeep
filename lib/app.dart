@@ -5,7 +5,6 @@ import 'package:agrikeep/pages/welcome_page.dart';
 import 'package:agrikeep/pages/auth/login_page.dart';
 import 'package:agrikeep/pages/auth/signup_page.dart';
 import 'package:agrikeep/pages/auth/forgot_password_page.dart';
-import 'package:agrikeep/pages/auth/profile_setup_page.dart';
 import 'package:agrikeep/pages/dashboard_page.dart';
 import 'package:agrikeep/pages/recommendations_page.dart';
 import 'package:agrikeep/pages/cultivation_activities_page.dart';
@@ -52,12 +51,9 @@ class _AppState extends State<App> {
   }
 
   void _handleSignUp() {
-    _setAppState(AppState.profileSetup);
+    _setAppState(AppState.app); // CHANGED from AppState.profileSetup
   }
 
-  void _handleProfileSetupComplete() {
-    _setAppState(AppState.app);
-  }
 
   void _handleLogout() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -122,7 +118,7 @@ class _AppState extends State<App> {
     // 4. SIGNUP PAGE
     if (_appState == AppState.signup) {
       return SignUpPage(
-        onSignUp: _handleSignUp,
+        onSignUp: _handleSignUp, // This now goes directly to AppState.app
         onBackToLogin: () => _setAppState(AppState.login),
       );
     }
@@ -131,13 +127,6 @@ class _AppState extends State<App> {
     if (_appState == AppState.forgotPassword) {
       return ForgotPasswordPage(
         onBackToLogin: () => _setAppState(AppState.login),
-      );
-    }
-
-    // 6. PROFILE SETUP
-    if (_appState == AppState.profileSetup) {
-      return ProfileSetupPage(
-        onComplete: _handleProfileSetupComplete,
       );
     }
 
@@ -300,6 +289,5 @@ enum AppState {
   login,
   signup,
   forgotPassword,
-  profileSetup,
   app,
 }

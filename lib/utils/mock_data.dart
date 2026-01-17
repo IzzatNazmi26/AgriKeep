@@ -210,7 +210,7 @@ class MockData {
   ];
 
 
-  // Farm Profile - Updated for Malaysian greenhouse
+  /*// Farm Profile - Updated for Malaysian greenhouse
   static final FarmProfile mockFarmProfile = FarmProfile(
     id: '1',
     userId: 'user123',
@@ -222,7 +222,7 @@ class MockData {
     preferredCrops: ['Cherry Tomato', 'Cucumber', 'Capsicum'], // Your greenhouse crops
     createdAt: DateTime.now().subtract(const Duration(days: 365)),
     updatedAt: DateTime.now(),
-  );
+  );*/
 
   /*// Yield Records - Updated for greenhouse crops
   static final List<YieldRecord> mockYields = [

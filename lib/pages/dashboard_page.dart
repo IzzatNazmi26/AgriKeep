@@ -144,7 +144,7 @@ class _DashboardPageState extends State<DashboardPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Welcome back, $username! 🌱',
+          'Welcome, $username! 🌱',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -152,13 +152,13 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          _farmName,
-          style: TextStyle(
-            fontSize: 16,
-            color: AgriKeepTheme.textSecondary,
-          ),
-        ),
+        // Text(
+        //   _farmName,
+        //   style: TextStyle(
+        //     fontSize: 16,
+        //     color: AgriKeepTheme.textSecondary,
+        //   ),
+        // ),
       ],
     );
   }
@@ -547,7 +547,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Manage your farm details',
+                  'Manage your profile',
                   style: const TextStyle(
                     fontSize: 14,
                     color: AgriKeepTheme.textSecondary,

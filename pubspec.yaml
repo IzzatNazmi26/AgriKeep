@@ -8,13 +8,29 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Provider for state management
   provider: ^6.1.1
+
+  # Shared preferences
   shared_preferences: ^2.2.2
+
+  # Internationalization
   intl: ^0.19.0
-  firebase_core: ^2.32.0
-  firebase_auth: ^4.16.0
-  cloud_firestore: ^4.17.5
+
+  # Firebase Core (updated)
+  firebase_core: ^3.5.0
+
+  # Firebase Auth (updated)
+  firebase_auth: ^5.1.0
+
+  # Cloud Firestore (updated)
+  cloud_firestore: ^5.0.0
+
+  # Image picker
   image_picker: ^1.0.5
+
+  # Launcher icons
   flutter_launcher_icons: ^0.13.1
 
 dev_dependencies:

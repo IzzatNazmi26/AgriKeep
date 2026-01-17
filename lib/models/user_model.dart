@@ -68,14 +68,27 @@ class UserModel {
       updatedAt = DateTime.now();
     }
 
+    // HANDLE BACKWARD COMPATIBILITY:
+    // 1. Check for 'fullName' field (old) and fallback to 'username'
+    String username = data['username'] ?? '';
+    if (username.isEmpty && data['fullName'] != null) {
+      username = data['fullName'];
+    }
+
+    // 2. Check for 'state' field, fallback to 'country' for existing users
+    String? state = data['state'];
+    if (state == null || state.isEmpty) {
+      state = data['country']; // Fallback for existing users
+    }
+
     return UserModel(
       id: id,
       email: data['email'] ?? '',
-      username: data['username'] ?? '', // Changed from fullName to username
+      username: username,
       phoneNumber: data['phoneNumber'],
       profileImageUrl: data['profileImageUrl'],
-      country: data['country'],
-      state: data['state'],
+      country: data['country'], // Keep for backward compatibility
+      state: state, // Use the resolved state (either from 'state' or 'country')
       createdAt: createdAt,
       updatedAt: updatedAt,
       isEmailVerified: data['isEmailVerified'] ?? false,
@@ -84,14 +97,26 @@ class UserModel {
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
+    // Handle backward compatibility for username
+    String username = map['username'] ?? '';
+    if (username.isEmpty && map['fullName'] != null) {
+      username = map['fullName'];
+    }
+
+    // Handle backward compatibility for state
+    String? state = map['state'];
+    if (state == null || state.isEmpty) {
+      state = map['country'];
+    }
+
     return UserModel(
       id: map['id'] ?? '',
       email: map['email'] ?? '',
-      username: map['username'] ?? '', // Changed from fullName to username
+      username: username,
       phoneNumber: map['phoneNumber'],
       profileImageUrl: map['profileImageUrl'],
-      country: map['country'],
-      state: map['state'],
+      country: map['country'], // Keep for backward compatibility
+      state: state,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
       isEmailVerified: map['isEmailVerified'] ?? false,
