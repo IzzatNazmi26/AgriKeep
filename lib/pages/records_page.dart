@@ -193,6 +193,10 @@ class _RecordsPageState extends State<RecordsPage> {
     _formData['date'] = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     _formData['pricePerUnit'] = '';
     _formData['buyer'] = '';
+
+    // Also reset edit state (optional but good practice)
+    _isEditMode = false;
+    _editingRecordId = '';
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -239,13 +243,13 @@ class _RecordsPageState extends State<RecordsPage> {
   void _editRecord(SalesRecord record) {
     setState(() {
       _showAddForm = true;
-      _isEditMode = true;
-      _editingRecordId = record.id;
+      _isEditMode = true; // Set to true for edit
+      _editingRecordId = record.id; // Store the ID to edit
       // Populate form with record data
       _formData['cropName'] = record.cropName;
       _formData['quantity'] = record.quantity.toString();
       _formData['unit'] = record.unit;
-      _formData['date'] = '${record.date.year}-${record.date.month.toString().padLeft(2, '0')}-${record.date.day.toString().padLeft(2, '0')}'; // Already correct
+      _formData['date'] = '${record.date.year}-${record.date.month.toString().padLeft(2, '0')}-${record.date.day.toString().padLeft(2, '0')}';
       _formData['pricePerUnit'] = record.pricePerUnit.toString();
       _formData['buyer'] = record.buyer ?? '';
     });
@@ -395,7 +399,15 @@ class _RecordsPageState extends State<RecordsPage> {
           children: [
             AppHeader(
               title: 'Record Sale',
-              onBack: () => setState(() => _showAddForm = false),
+              onBack: () {
+                // RESET EVERYTHING WHEN GOING BACK
+                _resetForm();
+                setState(() {
+                  _showAddForm = false;
+                  _isEditMode = false; // RESET EDIT MODE
+                  _editingRecordId = ''; // CLEAR EDITING ID
+                });
+              },
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -543,7 +555,15 @@ class _RecordsPageState extends State<RecordsPage> {
               title: 'Sales Record',
               onBack: widget.onBack,
               action: IconButton(
-                onPressed: () => setState(() => _showAddForm = true),
+                onPressed: () {
+                  // RESET FORM AND EDIT STATE BEFORE SHOWING ADD FORM
+                  _resetForm();
+                  setState(() {
+                    _showAddForm = true;
+                    _isEditMode = false; // FORCE TO ADD MODE
+                    _editingRecordId = ''; // CLEAR ANY EDITING ID
+                  });
+                },
                 icon: const Icon(Icons.add),
                 style: IconButton.styleFrom(
                   backgroundColor: AgriKeepTheme.primaryColor,
@@ -681,7 +701,8 @@ class _RecordsPageState extends State<RecordsPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ..._salesRecords.map((sale) {
+                        ..._salesRecords
+                            .map((sale) {
                           return Dismissible(
                             key: Key(sale.id),
                             direction: DismissDirection.endToStart,
@@ -711,8 +732,9 @@ class _RecordsPageState extends State<RecordsPage> {
                               ),
                             ),
                           );
-                        }).toList(),
-                      ],
+                        })
+                            .toList(),
+                      ]
                   ],
                 ),
               ),
