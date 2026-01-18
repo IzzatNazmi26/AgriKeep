@@ -4,15 +4,99 @@ import 'package:agrikeep/models/crop.dart';
 import 'package:agrikeep/models/farm_profile.dart';
 import 'package:agrikeep/models/yield_record.dart';
 import 'package:agrikeep/models/sales_record.dart';
-import 'package:agrikeep/models/harvest.dart'; // Add this import
-import 'package:agrikeep/models/cultivation.dart'; // Add this import
+import 'package:agrikeep/models/harvest.dart';
+import 'package:agrikeep/models/cultivation.dart';
+import 'package:agrikeep/models/activity.dart';
 
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // add new cultivation part
-  // Cultivation Management
+  // ========== ACTIVITY MANAGEMENT ==========
+  Future<List<Activity>> getActivitiesByCultivationId(String cultivationId) async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+
+    final snapshot = await _firestore
+        .collection('activities')
+        .where('userId', isEqualTo: user.uid)
+        .where('cultivationId', isEqualTo: cultivationId)
+        .orderBy('activityDate', descending: true)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      return Activity.fromFirestore(doc.id, doc.data());
+    }).toList();
+  }
+
+  Future<Activity?> getActivityById(String activityId) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final doc = await _firestore
+        .collection('activities')
+        .doc(activityId)
+        .get();
+
+    if (doc.exists) {
+      return Activity.fromFirestore(doc.id, doc.data()!);
+    }
+    return null;
+  }
+
+  Future<void> updateActivity(Activity activity) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('activities')
+        .doc(activity.id)
+        .update(activity.copyWith(userId: user.uid).toMap());
+  }
+
+  Future<void> deleteActivity(String activityId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore.collection('activities').doc(activityId).delete();
+  }
+
+  Future<void> deleteActivitiesByCultivationId(String cultivationId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final snapshot = await _firestore
+        .collection('activities')
+        .where('userId', isEqualTo: user.uid)
+        .where('cultivationId', isEqualTo: cultivationId)
+        .get();
+
+    final batch = _firestore.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  // ========== HARVEST MANAGEMENT (Add delete by cultivation) ==========
+  Future<void> deleteHarvestsByCultivationId(String cultivationId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final snapshot = await _firestore
+        .collection('harvests')
+        .where('userId', isEqualTo: user.uid)
+        .where('cultivationId', isEqualTo: cultivationId)
+        .get();
+
+    final batch = _firestore.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  // ========== CULTIVATION MANAGEMENT ==========
   Future<List<Cultivation>> getCultivations() async {
     final user = _auth.currentUser;
     if (user == null) return [];
@@ -61,14 +145,32 @@ class FirebaseService {
     await _firestore
         .collection('cultivations')
         .doc(cultivation.id)
-        .update(cultivation.toMap());
+        .update({
+      'cropId': cultivation.cropId,
+      'cropName': cultivation.cropName,
+      'plantingDate': cultivation.plantingDate.millisecondsSinceEpoch,
+      'growthDurationDays': cultivation.growthDurationDays,
+      'expectedHarvestDate': cultivation.expectedHarvestDate.millisecondsSinceEpoch,
+      'status': cultivation.status,
+      'currentDay': cultivation.currentDay,
+      'progressPercentage': cultivation.progressPercentage,
+      'note': cultivation.note,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    });
   }
 
-  Future<void> deleteCultivation(String id) async {
+  Future<void> deleteCultivation(String cultivationId) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    await _firestore.collection('cultivations').doc(id).delete();
+    // Delete cultivation
+    await _firestore.collection('cultivations').doc(cultivationId).delete();
+
+    // Delete related activities
+    await deleteActivitiesByCultivationId(cultivationId);
+
+    // Delete related harvests
+    await deleteHarvestsByCultivationId(cultivationId);
   }
 
   Future<List<Cultivation>> getActiveCultivations() async {
@@ -99,10 +201,10 @@ class FirebaseService {
         .count()
         .get();
 
-    return snapshot.count ?? 0; // Handle null case
+    return snapshot.count ?? 0;
   }
 
-  // Harvest Management
+  // ========== HARVEST MANAGEMENT ==========
   Future<List<Harvest>> getHarvests() async {
     final user = _auth.currentUser;
     if (user == null) return [];
@@ -116,7 +218,6 @@ class FirebaseService {
     return snapshot.docs.map((doc) => Harvest.fromFirestore(doc.id, doc.data())).toList();
   }
 
-  // In firebase_service.dart, add a new method:
   Future<List<Harvest>> getHarvestsByCultivationId(String cultivationId) async {
     final user = _auth.currentUser;
     if (user == null) return [];
@@ -124,7 +225,7 @@ class FirebaseService {
     final snapshot = await _firestore
         .collection('harvests')
         .where('userId', isEqualTo: user.uid)
-        .where('cultivationId', isEqualTo: cultivationId) // Filter by cultivation
+        .where('cultivationId', isEqualTo: cultivationId)
         .orderBy('harvestDate', descending: true)
         .get();
 
@@ -152,6 +253,23 @@ class FirebaseService {
     await _firestore.collection('harvests').doc(harvest.id).set(
       harvest.copyWith(userId: user.uid).toMap(),
     );
+  }
+
+  Future<void> updateHarvest(Harvest harvest) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('harvests')
+        .doc(harvest.id)
+        .update(harvest.copyWith(userId: user.uid).toMap());
+  }
+
+  Future<void> deleteHarvest(String harvestId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore.collection('harvests').doc(harvestId).delete();
   }
 
   Future<double> getTotalHarvestedWeight() async {
@@ -195,7 +313,6 @@ class FirebaseService {
     };
   }
 
-  // Cultivation Management (to update status when harvested)
   Future<void> updateCultivationStatus(String cultivationId, String status) async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -209,7 +326,7 @@ class FirebaseService {
     });
   }
 
-  // User Management
+  // ========== USER MANAGEMENT ==========
   Future<void> updateUserProfile(Map<String, dynamic> data) async {
     final user = _auth.currentUser;
     if (user != null) {
@@ -217,7 +334,7 @@ class FirebaseService {
     }
   }
 
-  // Crop Management
+  // ========== CROP MANAGEMENT ==========
   Future<List<Crop>> getCrops() async {
     final snapshot = await _firestore.collection('crops').get();
     return snapshot.docs.map((doc) => Crop.fromFirestore(doc)).toList();
@@ -231,7 +348,7 @@ class FirebaseService {
     return null;
   }
 
-  // Farm Profile Management
+  // ========== FARM PROFILE MANAGEMENT ==========
   Future<FarmProfile?> getFarmProfile() async {
     final user = _auth.currentUser;
     if (user == null) return null;
@@ -263,30 +380,7 @@ class FirebaseService {
     );
   }
 
- /* // Yield Records
-  Future<List<YieldRecord>> getYieldRecords() async {
-    final user = _auth.currentUser;
-    if (user == null) return [];
-
-    final snapshot = await _firestore
-        .collection('yield_records')
-        .where('userId', isEqualTo: user.uid)
-        .orderBy('date', descending: true)
-        .get();
-
-    return snapshot.docs.map((doc) => YieldRecord.fromFirestore(doc.id, doc.data())).toList();
-  }
-
-  Future<void> addYieldRecord(YieldRecord record) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    await _firestore.collection('yield_records').add(
-      record.copyWith(userId: user.uid).toMap(),
-    );
-  }*/
-
-  // Sales Records
+  // ========== SALES RECORDS ==========
   Future<List<SalesRecord>> getSalesRecords() async {
     final user = _auth.currentUser;
     if (user == null) return [];
@@ -308,9 +402,6 @@ class FirebaseService {
       record.copyWith(userId: user.uid).toMap(),
     );
   }
-
-  // Find the existing addSalesRecord() method (around line 250)
-// Add these 3 new methods AFTER it:
 
   Future<void> updateSalesRecord(SalesRecord record) async {
     final user = _auth.currentUser;
@@ -344,12 +435,11 @@ class FirebaseService {
     return null;
   }
 
-  // Analytics
+  // ========== ANALYTICS ==========
   Future<Map<String, dynamic>> getAnalytics(String timeRange) async {
     final user = _auth.currentUser;
     if (user == null) return {};
 
-    // Calculate date range based on timeRange
     DateTime startDate;
     final now = DateTime.now();
 
@@ -367,36 +457,20 @@ class FirebaseService {
         startDate = now.subtract(const Duration(days: 30));
     }
 
-    // Get sales data
     final salesSnapshot = await _firestore
         .collection('sales_records')
         .where('userId', isEqualTo: user.uid)
         .where('date', isGreaterThanOrEqualTo: startDate.millisecondsSinceEpoch)
         .get();
 
-    // Get yield data
-    final yieldSnapshot = await _firestore
-        .collection('yield_records')
-        .where('userId', isEqualTo: user.uid)
-        .where('date', isGreaterThanOrEqualTo: startDate.millisecondsSinceEpoch)
-        .get();
-
-    // Calculate analytics
     final totalRevenue = salesSnapshot.docs.fold<double>(0, (sum, doc) {
       final data = doc.data();
       return sum + (data['totalAmount'] ?? 0.0);
     });
 
-    final totalYield = yieldSnapshot.docs.fold<double>(0, (sum, doc) {
-      final data = doc.data();
-      return sum + (data['quantity'] ?? 0.0);
-    });
-
     return {
       'totalRevenue': totalRevenue,
-      'totalYield': totalYield,
       'salesCount': salesSnapshot.docs.length,
-      'yieldCount': yieldSnapshot.docs.length,
     };
   }
 }

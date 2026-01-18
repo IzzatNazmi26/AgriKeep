@@ -18,7 +18,10 @@ import 'package:agrikeep/pages/providers/auth_provider.dart';
 import 'package:agrikeep/pages/weekly_act_page.dart';
 import 'package:agrikeep/pages/add_cultivation_page.dart';
 import 'package:agrikeep/pages/harvest_records_page.dart';
+import 'package:agrikeep/pages/activity_records_page.dart'; // ADD THIS
 import 'package:agrikeep/models/cultivation.dart';
+import 'package:agrikeep/models/activity.dart'; // ADD THIS
+import 'package:agrikeep/models/harvest.dart'; // ADD THIS
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -30,7 +33,7 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   AppState _appState = AppState.splash;
   String _currentPage = 'dashboard';
-  Map<String, dynamic>? _currentPageParams; // Store navigation parameters
+  Map<String, dynamic>? _currentPageParams;
 
   void _setAppState(AppState state) {
     print("🔄 Changing app state from $_appState to $state");
@@ -47,13 +50,11 @@ class _AppState extends State<App> {
 
   void _handleLogin() {
     // Do nothing here
-    // Firebase Auth + AuthProvider will handle state
   }
 
   void _handleSignUp() {
-    _setAppState(AppState.app); // CHANGED from AppState.profileSetup
+    _setAppState(AppState.app);
   }
-
 
   void _handleLogout() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -66,7 +67,6 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) {
     print("🎨 Building App with state: $_appState, page: $_currentPage");
 
-    // Listen to auth provider
     final authProvider = context.watch<AuthProvider>();
 
     if (authProvider.isAuthenticated && _appState != AppState.app) {
@@ -82,7 +82,6 @@ class _AppState extends State<App> {
       });
     }
 
-    // 1. SPLASH SCREEN
     if (_appState == AppState.splash) {
       return SplashScreen(
         onComplete: () {
@@ -99,14 +98,12 @@ class _AppState extends State<App> {
       );
     }
 
-    // 2. WELCOME PAGE
     if (_appState == AppState.welcome) {
       return WelcomePage(
         onGetStarted: () => _setAppState(AppState.login),
       );
     }
 
-    // 3. LOGIN PAGE
     if (_appState == AppState.login) {
       return LoginPage(
         onLogin: _handleLogin,
@@ -115,40 +112,33 @@ class _AppState extends State<App> {
       );
     }
 
-    // 4. SIGNUP PAGE
     if (_appState == AppState.signup) {
       return SignUpPage(
-        onSignUp: _handleSignUp, // This now goes directly to AppState.app
+        onSignUp: _handleSignUp,
         onBackToLogin: () => _setAppState(AppState.login),
       );
     }
 
-    // 5. FORGOT PASSWORD
     if (_appState == AppState.forgotPassword) {
       return ForgotPasswordPage(
         onBackToLogin: () => _setAppState(AppState.login),
       );
     }
 
-    // 7. MAIN APP WITH NAVIGATION
     if (_appState == AppState.app) {
       return _buildMainApp();
     }
 
-    // Fallback
     return const Scaffold(
       body: Center(child: Text('Something went wrong')),
     );
   }
 
   Widget _buildMainApp() {
-    // Handle dynamic cultivation-detail route with ID
     if (_currentPage.startsWith('cultivation-detail/')) {
       final parts = _currentPage.split('/');
       if (parts.length >= 2) {
         final cultivationId = parts[1];
-
-        // Check if we have the cultivation data passed as params
         final cultivation = _currentPageParams?['cultivation'] as Cultivation?;
 
         if (cultivation != null) {
@@ -169,7 +159,6 @@ class _AppState extends State<App> {
             cultivationId: cultivationId,
           );
         } else {
-          // TODO: We might need to fetch the cultivation data here
           return CultivationDetailPage(
             onBack: () => _setCurrentPage('cultivation'),
             onAddActivity: () => _setCurrentPage('weekly-activity', params: {
@@ -178,7 +167,7 @@ class _AppState extends State<App> {
             onHarvest: () => _setCurrentPage('harvest-entry', params: {
               'cultivationId': cultivationId,
             }),
-            cropId: 'TEMPORARY_CROP_ID_001', // Placeholder until we fetch data
+            cropId: 'TEMPORARY_CROP_ID_001',
             cropName: 'Loading...',
             onNavigate: _setCurrentPage,
             cultivationId: cultivationId,
@@ -187,12 +176,11 @@ class _AppState extends State<App> {
       }
     }
 
-    // Handle other routes
     switch (_currentPage) {
       case 'dashboard':
         return DashboardPage(
           onNavigate: _setCurrentPage,
-          onLogout: _handleLogout, // ADDED onLogout
+          onLogout: _handleLogout,
         );
       case 'recommendations':
         return RecommendationsPage(onBack: () => _setCurrentPage('dashboard'));
@@ -201,29 +189,36 @@ class _AppState extends State<App> {
           onBack: () => _setCurrentPage('dashboard'),
           onNavigate: _setCurrentPage,
         );
+    // In app.dart, update the 'add-cultivation' case:
+
       case 'add-cultivation':
+        final cultivation = _currentPageParams?['cultivation'] as Cultivation?;
+        final isEditMode = _currentPageParams?['isEditMode'] ?? false;
+
         return AddCultivationPage(
           onBack: () => _setCurrentPage('cultivation'),
+          cultivation: cultivation, // Pass the cultivation to edit
+          isEditMode: isEditMode, // Pass edit mode flag
         );
       case 'weekly-activity':
         final cultivationId = _currentPageParams?['cultivationId'] ?? 'TEMPORARY_ID_001';
-        final cropName = _currentPageParams?['cropName'] ?? 'Crop'; // Get from params
+        final cropName = _currentPageParams?['cropName'] ?? 'Crop';
 
         return WeeklyActivityPage(
           onBack: () => _setCurrentPage('cultivation-detail/$cultivationId'),
           cultivationId: cultivationId,
-          cropName: cropName, // Use the real crop name from params
+          cropName: cropName,
         );
       case 'harvest-entry':
         final harvestCultivationId = _currentPageParams?['cultivationId'];
-        final cropId = _currentPageParams?['cropId'] ?? 'TEMPORARY_CROP_ID_001'; // Get from params
-        final cropName = _currentPageParams?['cropName'] ?? 'Crop'; // Get from params
+        final cropId = _currentPageParams?['cropId'] ?? 'TEMPORARY_CROP_ID_001';
+        final cropName = _currentPageParams?['cropName'] ?? 'Crop';
 
         return HarvestEntryPage(
           onBack: () => _setCurrentPage('cultivation-detail/$harvestCultivationId'),
           onSave: () => _setCurrentPage('cultivation-detail/$harvestCultivationId'),
-          cropId: cropId, // Use the real crop ID from params
-          cropName: cropName, // Use the real crop name from params
+          cropId: cropId,
+          cropName: cropName,
           cultivationId: harvestCultivationId,
         );
       case 'harvest-records':
@@ -231,34 +226,81 @@ class _AppState extends State<App> {
         final cropName = _currentPageParams?['cropName'];
         final cultivationId = _currentPageParams?['cultivationId'];
 
-        print('📊 Navigating to harvest-records with params:');
-        print('   cropId: $cropId');
-        print('   cropName: $cropName');
-        print('   cultivationId: $cultivationId');
-
         return HarvestRecordsPage(
           onBack: () {
-            print('🔙 Back button pressed from harvest-records');
-            print('   cultivationId from params: $cultivationId');
-
-            // Always go back to cultivation detail if we have cultivationId
             if (cultivationId != null && cultivationId.isNotEmpty) {
-              print('   Navigating back to cultivation-detail/$cultivationId');
               _setCurrentPage('cultivation-detail/$cultivationId');
             } else {
-              print('   No cultivationId, navigating to cultivation list');
               _setCurrentPage('cultivation');
             }
           },
           cropId: cropId,
           cropName: cropName,
-          cultivationId: cultivationId, // ADD THIS
+          cultivationId: cultivationId,
+          onNavigate: _setCurrentPage, // ADD THIS
         );
-      case 'salesrecords':
-        return RecordsPage(
-          onBack: () => _setCurrentPage('dashboard'),
+      case 'harvest-edit':
+        final harvest = _currentPageParams?['harvest'] as Harvest?;
+        final cultivationId = _currentPageParams?['cultivationId'] ?? harvest?.cultivationId;
+        final cropId = _currentPageParams?['cropId'] ?? harvest?.cropId;
+        final cropName = _currentPageParams?['cropName'] ?? harvest?.cropName;
+
+        return HarvestEntryPage(
+          onBack: () {
+            // Go back to harvest records page
+            _setCurrentPage('harvest-records', params: {
+              'cultivationId': cultivationId,
+              'cropId': cropId,
+              'cropName': cropName,
+            });
+          },
+          onSave: () {
+            // After saving, go back to harvest records page
+            _setCurrentPage('harvest-records', params: {
+              'cultivationId': cultivationId,
+              'cropId': cropId,
+              'cropName': cropName,
+            });
+          },
+          cropId: cropId ?? 'TEMPORARY_CROP_ID_001',
+          cropName: cropName ?? 'Crop',
+          cultivationId: cultivationId,
+          harvest: harvest, // Pass the harvest for edit mode
+        );
+      case 'activity-records':
+        final cultivationId = _currentPageParams?['cultivationId'];
+        final cropName = _currentPageParams?['cropName'];
+
+        return ActivityRecordsPage(
+          onBack: () {
+            if (cultivationId != null && cultivationId.isNotEmpty) {
+              _setCurrentPage('cultivation-detail/$cultivationId');
+            } else {
+              _setCurrentPage('cultivation');
+            }
+          },
+          cultivationId: cultivationId ?? '',
+          cropName: cropName,
           onNavigate: _setCurrentPage,
         );
+      case 'activity-edit':
+        final activity = _currentPageParams?['activity'] as Activity?;
+        final cultivationId = _currentPageParams?['cultivationId'] ?? activity?.cultivationId;
+        final cropName = _currentPageParams?['cropName'] ?? 'Crop';
+
+        return WeeklyActivityPage(
+          onBack: () {
+            // Go back to activity records page
+            _setCurrentPage('activity-records', params: {
+              'cultivationId': cultivationId,
+              'cropName': cropName,
+            });
+          },
+          cultivationId: cultivationId ?? '',
+          cropName: cropName,
+          activity: activity, // Pass the activity for edit mode
+        );
+      case 'salesrecords':
       case 'records':
         return RecordsPage(
           onBack: () => _setCurrentPage('dashboard'),
@@ -266,7 +308,6 @@ class _AppState extends State<App> {
         );
       case 'crop-info':
         return CropInformationPage(onBack: () => _setCurrentPage('dashboard'));
-    // In app.dart, find where ProfilePage is created (around line 250):
       case 'profile':
         return ProfilePage(
           onBack: () => _setCurrentPage('dashboard'),
@@ -277,7 +318,7 @@ class _AppState extends State<App> {
       default:
         return DashboardPage(
           onNavigate: _setCurrentPage,
-          onLogout: _handleLogout, // ADDED onLogout to default case too
+          onLogout: _handleLogout,
         );
     }
   }

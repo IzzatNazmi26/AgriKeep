@@ -7,17 +7,20 @@ import 'package:agrikeep/utils/activity_enums.dart';
 import 'package:agrikeep/widgets/header.dart';
 import 'package:agrikeep/widgets/input_field.dart';
 import 'package:agrikeep/utils/theme.dart';
+import 'package:agrikeep/services/firebase_service.dart'; // ADD THIS
 
 class WeeklyActivityPage extends StatefulWidget {
   final VoidCallback onBack;
   final String cultivationId;
   final String cropName;
+  final Activity? activity; // ADD THIS for edit mode
 
   const WeeklyActivityPage({
     super.key,
     required this.onBack,
     required this.cultivationId,
     required this.cropName,
+    this.activity, // ADD THIS
   });
 
   @override
@@ -27,6 +30,7 @@ class WeeklyActivityPage extends StatefulWidget {
 class _WeeklyActivityPageState extends State<WeeklyActivityPage> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseService _firebaseService = FirebaseService(); // ADD THIS
   final User? _user = FirebaseAuth.instance.currentUser;
 
   // Form fields
@@ -35,17 +39,41 @@ class _WeeklyActivityPageState extends State<WeeklyActivityPage> {
   String _wateringFrequency = '';
   String _note = '';
   DateTime _activityDate = DateTime.now();
+  bool _isEditMode = false; // ADD THIS
+  String? _activityId; // ADD THIS
 
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Check if we're in edit mode
+    if (widget.activity != null) {
+      _isEditMode = true;
+      _activityId = widget.activity!.id;
+      _activityType = widget.activity!.activityType;
+      _activityDate = widget.activity!.activityDate;
+      _note = widget.activity!.note ?? '';
+
+      // Set conditional fields if they exist
+      if (widget.activity!.fertilizerType != null) {
+        _fertilizerType = widget.activity!.fertilizerType!;
+      }
+      if (widget.activity!.wateringFrequency != null) {
+        _wateringFrequency = widget.activity!.wateringFrequency!;
+      }
+    }
+  }
 
   Future<void> _saveActivity(BuildContext context) async {
     if (_formKey.currentState!.validate() && _user != null) {
       setState(() => _isSaving = true);
 
       try {
-        // Create simplified activity object
+        // Create activity object
         final activity = Activity(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _isEditMode ? _activityId! : DateTime.now().millisecondsSinceEpoch.toString(),
           userId: _user!.uid,
           cultivationId: widget.cultivationId,
           activityType: _activityType,
@@ -53,21 +81,28 @@ class _WeeklyActivityPageState extends State<WeeklyActivityPage> {
           fertilizerType: _activityType == 'Fertilizer Application' ? _fertilizerType : null,
           wateringFrequency: _activityType == 'Watering' ? _wateringFrequency : null,
           note: _note.isNotEmpty ? _note : null,
-          createdAt: DateTime.now(),
+          createdAt: _isEditMode ? widget.activity!.createdAt : DateTime.now(),
         );
 
-        // Save to Firestore
-        await _firestore
-            .collection('activities')
-            .doc(activity.id)
-            .set(activity.toMap());
+        if (_isEditMode) {
+          // Update existing activity
+          await _firebaseService.updateActivity(activity);
+        } else {
+          // Save new activity
+          await _firestore
+              .collection('activities')
+              .doc(activity.id)
+              .set(activity.toMap());
+        }
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Activity saved successfully!'),
+          SnackBar(
+            content: Text(_isEditMode
+                ? 'Activity updated successfully!'
+                : 'Activity saved successfully!'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
 
@@ -110,7 +145,7 @@ class _WeeklyActivityPageState extends State<WeeklyActivityPage> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Log Activity',
+              title: _isEditMode ? 'Edit Activity' : 'Log Activity', // UPDATED
               onBack: widget.onBack,
             ),
             Expanded(
@@ -145,7 +180,7 @@ class _WeeklyActivityPageState extends State<WeeklyActivityPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Record your weekly activity',
+                              _isEditMode ? 'Edit your activity' : 'Record your weekly activity',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: AgriKeepTheme.textSecondary,
@@ -181,7 +216,6 @@ class _WeeklyActivityPageState extends State<WeeklyActivityPage> {
                         onChanged: (value) {
                           setState(() {
                             _activityType = value!;
-                            // Clear dependent fields when activity type changes
                             if (value != 'Fertilizer Application') _fertilizerType = '';
                             if (value != 'Watering') _wateringFrequency = '';
                           });
@@ -328,6 +362,7 @@ class _WeeklyActivityPageState extends State<WeeklyActivityPage> {
                       const SizedBox(height: 8),
                       TextFormField(
                         maxLines: 3,
+                        initialValue: _note, // ADD THIS for edit mode
                         decoration: InputDecoration(
                           hintText: 'Short note (if any)...',
                           border: OutlineInputBorder(
@@ -362,8 +397,8 @@ class _WeeklyActivityPageState extends State<WeeklyActivityPage> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                              : const Text(
-                            'Save Activity',
+                              : Text(
+                            _isEditMode ? 'Update Activity' : 'Save Activity', // UPDATED
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,

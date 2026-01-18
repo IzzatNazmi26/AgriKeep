@@ -429,23 +429,47 @@ class _CultivationDetailPageState extends State<CultivationDetailPage> {
                               color: AgriKeepTheme.textPrimary,
                             ),
                           ),
-                          IconButton(
-                            onPressed: () {
-                              if (widget.onNavigate != null) {
-                                widget.onNavigate!('weekly-activity', params: {
-                                  'cultivationId': widget.cultivationId,
-                                  'cropName': cropData.name, // ← This should be cropData.name
-                                });
-                              }
-                            },
-                            icon: const Icon(Icons.add),
-                            style: IconButton.styleFrom(
-                              backgroundColor: AgriKeepTheme.primaryColor,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          Row(
+                            children: [
+                              if (_activities.isNotEmpty)
+                                TextButton(
+                                  onPressed: () {
+                                    if (widget.onNavigate != null) {
+                                      widget.onNavigate!('activity-records', params: {
+                                        'cultivationId': widget.cultivationId,
+                                        'cropName': cropData.name,
+                                      });
+                                    }
+                                  },
+                                  child: Text(
+                                    'View All',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AgriKeepTheme.primaryColor,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: () {
+                                  if (widget.onNavigate != null) {
+                                    widget.onNavigate!('weekly-activity', params: {
+                                      'cultivationId': widget.cultivationId,
+                                      'cropName': cropData.name,
+                                    });
+                                  }
+                                },
+                                icon: const Icon(Icons.add),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: AgriKeepTheme.primaryColor,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),

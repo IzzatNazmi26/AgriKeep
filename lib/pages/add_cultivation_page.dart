@@ -10,15 +10,16 @@ import 'package:agrikeep/models/cultivation.dart';
 import 'package:agrikeep/models/crop.dart';
 import 'package:agrikeep/services/firebase_service.dart';
 
-
 class AddCultivationPage extends StatefulWidget {
   final VoidCallback onBack;
-  final void Function(String)? onNavigate;
+  final Cultivation? cultivation; // Add this for edit mode
+  final bool isEditMode; // Add this for edit mode
 
   const AddCultivationPage({
     super.key,
     required this.onBack,
-    this.onNavigate,
+    this.cultivation, // Add this
+    this.isEditMode = false, // Add this with default
   });
 
   @override
@@ -38,6 +39,8 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
 
   bool _isLoading = false;
   bool _isCalculatingHarvest = false;
+  bool _isEditMode = false; // Add this
+  String? _cultivationId; // Add this
 
   // Get all crops from mock data
   List<Crop> get crops => MockData.mockCrops;
@@ -48,8 +51,24 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize with today's date
-    _calculateHarvestDate();
+
+    _isEditMode = widget.isEditMode;
+
+    if (_isEditMode && widget.cultivation != null) {
+      // Populate form with existing cultivation data for edit mode
+      final cultivation = widget.cultivation!;
+      _cultivationId = cultivation.id;
+
+      _formData['cropId'] = cultivation.cropId;
+      _formData['cropName'] = cultivation.cropName;
+      _formData['plantingDate'] = cultivation.plantingDate;
+      _formData['growthDurationDays'] = cultivation.growthDurationDays;
+      _formData['expectedHarvestDate'] = cultivation.expectedHarvestDate;
+      _formData['note'] = cultivation.note;
+    } else {
+      // Initialize with today's date for new cultivation
+      _calculateHarvestDate();
+    }
   }
 
   void _calculateHarvestDate() {
@@ -124,6 +143,12 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
   }
 
   Future<void> _handleSubmit() async {
+
+    //debug purpose
+    print('=== HANDLE SUBMIT (Edit Mode: $_isEditMode) ===');
+    print('Cultivation ID: $_cultivationId');
+    print('Original cultivation userId: ${widget.cultivation?.userId}');
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -142,37 +167,49 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
       final currentDay = DateTime.now().difference(plantingDate).inDays.clamp(0, growthDuration);
       final progressPercentage = ((currentDay / growthDuration) * 100).clamp(0, 100).toInt();
 
-      // Determine initial status based on progress
-      String initialStatus = 'Planted';
-      if (progressPercentage > 30) initialStatus = 'Growing';
-      if (progressPercentage > 60) initialStatus = 'Flowering';
+      // Determine status based on progress
+      String status = 'Planted';
+      if (progressPercentage > 30) status = 'Growing';
+      if (progressPercentage > 60) status = 'Flowering';
 
-      // Generate a unique ID
-      final cultivationId = 'cult_${DateTime.now().millisecondsSinceEpoch}_${_formData['cropId']}';
+      // Use existing ID for edit mode, generate new for add mode
+      final cultivationId = _isEditMode ? _cultivationId! : 'cult_${DateTime.now().millisecondsSinceEpoch}_${_formData['cropId']}';
 
       final cultivation = Cultivation(
         id: cultivationId,
-        userId: '', // Will be set by FirebaseService
+        userId: _isEditMode ? widget.cultivation!.userId : '', // Keep original userId in edit mode
         cropId: _formData['cropId'] as String,
         cropName: _formData['cropName'] as String,
         plantingDate: plantingDate,
         growthDurationDays: growthDuration,
         expectedHarvestDate: expectedHarvest,
-        status: initialStatus,
+        status: status,
         currentDay: currentDay,
         progressPercentage: progressPercentage,
         note: _formData['note'] as String?,
-        createdAt: DateTime.now(),
+        createdAt: _isEditMode ? widget.cultivation!.createdAt : DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      // Save to Firebase
-      await firebaseService.addCultivation(cultivation);
+      //debug
+      print('Saving cultivation with userId: ${cultivation.userId}');
+      print('Cultivation data: ${cultivation.toMap()}');
+
+      // Save to Firebase - update for edit, add for new
+      if (_isEditMode) {
+        await firebaseService.updateCultivation(cultivation);
+      } else {
+        await firebaseService.addCultivation(cultivation);
+      }
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Cultivation "${cultivation.cropName}" added successfully!'),
+          content: Text(
+              _isEditMode
+                  ? 'Cultivation "${cultivation.cropName}" updated successfully!'
+                  : 'Cultivation "${cultivation.cropName}" added successfully!'
+          ),
           backgroundColor: AgriKeepTheme.successColor,
           duration: const Duration(seconds: 2),
         ),
@@ -180,16 +217,15 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
 
       // Navigate back after short delay
       await Future.delayed(const Duration(milliseconds: 1500));
-
       widget.onBack();
 
     } catch (e) {
       // Handle error
-      print('❌ Error saving cultivation: $e');
+      print('❌ Error ${_isEditMode ? 'updating' : 'saving'} cultivation: $e');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to save cultivation: ${e.toString()}'),
+          content: Text('Failed to ${_isEditMode ? 'update' : 'save'} cultivation: ${e.toString()}'),
           backgroundColor: AgriKeepTheme.errorColor,
           duration: const Duration(seconds: 3),
         ),
@@ -207,7 +243,7 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Add New Cultivation',
+              title: _isEditMode ? 'Edit Cultivation' : 'Add New Cultivation', // Updated title
               onBack: widget.onBack,
             ),
 
@@ -235,7 +271,9 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Register a new crop cultivation cycle to track growth and activities.',
+                                _isEditMode
+                                    ? 'Edit your crop cultivation details.'
+                                    : 'Register a new crop cultivation cycle to track growth and activities.',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: AgriKeepTheme.textSecondary,
@@ -255,6 +293,7 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
                         options: cropNames,
                         onOptionSelected: _onCropSelected,
                         required: true,
+                        enabled: !_isEditMode, // Disable crop selection in edit mode
                       ),
 
                       const SizedBox(height: 20),
@@ -395,9 +434,9 @@ class _AddCultivationPageState extends State<AddCultivationPage> {
 
                       const SizedBox(height: 32),
 
-                      // Save Button
+                      // Save/Update Button
                       CustomButton(
-                        text: 'Save Cultivation',
+                        text: _isEditMode ? 'Update Cultivation' : 'Save Cultivation',
                         onPressed: _handleSubmit,
                         variant: ButtonVariant.primary,
                         size: ButtonSize.large,

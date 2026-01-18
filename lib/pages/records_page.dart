@@ -653,88 +653,94 @@ class _RecordsPageState extends State<RecordsPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    if (_isLoading)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: CircularProgressIndicator(
-                            color: AgriKeepTheme.primaryColor,
+                    if (!_isLoading && _salesRecords.isNotEmpty) ...[
+                      Text(
+                        'Recent Sales',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AgriKeepTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ..._salesRecords
+                          .map((sale) {
+                        return Dismissible(
+                          key: Key(sale.id),
+                          direction: DismissDirection.horizontal, // ← Allow both directions
+                          background: Container(
+                            color: AgriKeepTheme.primaryColor, // ← GREEN for edit
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.only(left: 20),
+                            child: const Icon(Icons.edit, color: Colors.white),
                           ),
-                        ),
-                      )
-                    else if (_salesRecords.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.receipt,
-                              size: 48,
-                              color: AgriKeepTheme.textTertiary,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'No sales records yet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: AgriKeepTheme.textSecondary,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Add your first sale to get started',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AgriKeepTheme.textTertiary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else ...[
-                        Text(
-                          'Recent Sales',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AgriKeepTheme.textPrimary,
+                          secondaryBackground: Container(
+                            color: Colors.red, // ← RED for delete
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child: const Icon(Icons.delete, color: Colors.white),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        ..._salesRecords
-                            .map((sale) {
-                          return Dismissible(
-                            key: Key(sale.id),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              color: Colors.red,
-                              alignment: Alignment.centerRight,
-                              padding: EdgeInsets.only(right: 20),
-                              child: Icon(Icons.delete, color: Colors.white),
-                            ),
-                            confirmDismiss: (direction) async {
-                              if (direction == DismissDirection.endToStart) {
-                                _deleteRecord(sale.id);
-                                return false;
+                          confirmDismiss: (direction) async {
+                            if (direction == DismissDirection.endToStart) {
+                              // DELETE ACTION (swipe right to left)
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Delete Record'),
+                                  content: const Text('Are you sure you want to delete this sales record?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirmed == true) {
+                                try {
+                                  await _firebaseService.deleteSalesRecord(sale.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Record deleted successfully'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                  await _loadSalesRecords();
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error deleting record: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               }
-                              return false;
-                            },
-                            child: GestureDetector(
-                              onTap: () => _editRecord(sale),
-                              child: RecordItem(
-                                title: sale.cropName,
-                                subtitle: (sale.buyer?.isNotEmpty ?? false)
-                                    ? sale.buyer!
-                                    : 'Direct sale',
-                                value: 'RM${sale.totalAmount.toStringAsFixed(2)}',
-                                date: '${sale.date.day}/${sale.date.month}/${sale.date.year}',
-                                badge: '${sale.quantity.toStringAsFixed(1)} kg',
-                              ),
-                            ),
-                          );
-                        })
-                            .toList(),
-                      ]
+                              return false; // We handle deletion in the method
+                            } else if (direction == DismissDirection.startToEnd) {
+                              // EDIT ACTION (swipe left to right)
+                              _editRecord(sale);
+                              return false; // We handle navigation in the method
+                            }
+                            return false;
+                          },
+                          child: RecordItem( // ← REMOVED GestureDetector wrapper
+                            title: sale.cropName,
+                            subtitle: (sale.buyer?.isNotEmpty ?? false)
+                                ? sale.buyer!
+                                : 'Direct sale',
+                            value: 'RM${sale.totalAmount.toStringAsFixed(2)}',
+                            date: '${sale.date.day}/${sale.date.month}/${sale.date.year}',
+                            badge: '${sale.quantity.toStringAsFixed(1)} kg',
+                          ),
+                        );
+                      })
+                          .toList(),
+                    ]
                   ],
                 ),
               ),

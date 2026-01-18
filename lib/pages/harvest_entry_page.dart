@@ -11,9 +11,10 @@ import 'package:agrikeep/models/harvest.dart';
 class HarvestEntryPage extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback onSave;
-  final String cropId; // Add this
-  final String cropName; // Add this
-  final String? cultivationId; // Optional: link to cultivation
+  final String cropId;
+  final String cropName;
+  final String? cultivationId;
+  final Harvest? harvest; // ADD THIS for edit mode
 
   const HarvestEntryPage({
     super.key,
@@ -22,6 +23,7 @@ class HarvestEntryPage extends StatefulWidget {
     required this.cropId,
     required this.cropName,
     this.cultivationId,
+    this.harvest, // ADD THIS
   });
 
   @override
@@ -38,55 +40,70 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
   };
 
   bool _isSaving = false;
+  bool _isEditMode = false; // ADD THIS
+  String? _harvestId; // ADD THIS
 
   @override
   void initState() {
     super.initState();
-    // Set default date to today
-    final today = DateTime.now();
-    _formData['harvestDate'] = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    // Check if we're in edit mode
+    if (widget.harvest != null) {
+      _isEditMode = true;
+      _harvestId = widget.harvest!.id;
+      _formData['harvestDate'] = DateFormat('yyyy-MM-dd').format(widget.harvest!.harvestDate);
+      _formData['quantityKg'] = widget.harvest!.quantityKg.toString();
+      _formData['note'] = widget.harvest!.note ?? '';
+    } else {
+      // Set default date to today for new harvests
+      final today = DateTime.now();
+      _formData['harvestDate'] = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    }
   }
 
-  // In harvest_entry_page.dart, add debug prints:
   Future<void> _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSaving = true);
 
       try {
-        print('💾 Saving harvest for crop:');
+        print('💾 ${_isEditMode ? 'Updating' : 'Saving'} harvest for crop:');
         print('   cropId: ${widget.cropId}');
         print('   cropName: ${widget.cropName}');
         print('   cultivationId: ${widget.cultivationId}');
 
-        // In _handleSubmit method of harvest_entry_page.dart:
         final harvest = Harvest(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: _isEditMode ? _harvestId! : DateTime.now().millisecondsSinceEpoch.toString(),
           userId: '', // Will be set by FirebaseService
           cropId: widget.cropId,
           cropName: widget.cropName,
           harvestDate: DateTime.parse(_formData['harvestDate']),
           quantityKg: double.parse(_formData['quantityKg']),
           note: _formData['note'].isNotEmpty ? _formData['note'] : null,
-          createdAt: DateTime.now(),
-          cultivationId: widget.cultivationId, // ADD THIS - link to specific cultivation
+          createdAt: _isEditMode ? widget.harvest!.createdAt : DateTime.now(),
+          cultivationId: widget.cultivationId,
         );
 
-        // ... rest of the code
+        if (_isEditMode) {
+          // Update existing harvest
+          await _firebaseService.updateHarvest(harvest);
+        } else {
+          // Save new harvest
+          await _firebaseService.addHarvest(harvest);
 
-        // Save to Firebase
-        await _firebaseService.addHarvest(harvest);
-
-        // If linked to cultivation, update its status
-        if (widget.cultivationId != null) {
-          await _firebaseService.updateCultivationStatus(widget.cultivationId!, 'Harvested');
+          // If linked to cultivation, update its status
+          if (widget.cultivationId != null) {
+            await _firebaseService.updateCultivationStatus(widget.cultivationId!, 'Harvested');
+          }
         }
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Harvest saved successfully!'),
+          SnackBar(
+            content: Text(_isEditMode
+                ? 'Harvest updated successfully!'
+                : 'Harvest saved successfully!'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
 
@@ -95,10 +112,10 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
         widget.onSave();
 
       } catch (e) {
-        print('❌ Error saving harvest: $e');
+        print('❌ Error ${_isEditMode ? 'updating' : 'saving'} harvest: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save harvest. Please try again.'),
+          SnackBar(
+            content: Text('Failed to ${_isEditMode ? 'update' : 'save'} harvest. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -111,7 +128,9 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _formData['harvestDate'].isNotEmpty
+          ? DateTime.parse(_formData['harvestDate'])
+          : DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
@@ -130,7 +149,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
         child: Column(
           children: [
             AppHeader(
-              title: 'Record Harvest',
+              title: _isEditMode ? 'Edit Harvest' : 'Record Harvest', // UPDATED
               onBack: widget.onBack,
             ),
             Expanded(
@@ -172,7 +191,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Enter harvested quantity in kilograms',
+                                  _isEditMode ? 'Edit harvested quantity' : 'Enter harvested quantity in kilograms',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: AgriKeepTheme.textSecondary,
@@ -282,6 +301,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                           const SizedBox(height: 8),
                           TextFormField(
                             keyboardType: TextInputType.numberWithOptions(decimal: true),
+                            initialValue: _formData['quantityKg'], // ADD THIS for edit mode
                             decoration: InputDecoration(
                               hintText: 'Enter quantity in kilograms',
                               border: OutlineInputBorder(
@@ -320,6 +340,7 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
                           const SizedBox(height: 8),
                           TextFormField(
                             maxLines: 2,
+                            initialValue: _formData['note'], // ADD THIS for edit mode
                             decoration: InputDecoration(
                               hintText: 'Short note (e.g., "Good yield", "Smaller size than usual")',
                               border: OutlineInputBorder(
@@ -335,7 +356,9 @@ class _HarvestEntryPageState extends State<HarvestEntryPage> {
 
                           // Save Button
                           CustomButton(
-                            text: _isSaving ? 'Saving...' : 'Save Harvest Record',
+                            text: _isSaving
+                                ? (_isEditMode ? 'Updating...' : 'Saving...')
+                                : (_isEditMode ? 'Update Harvest Record' : 'Save Harvest Record'),
                             onPressed: _isSaving ? null : _handleSubmit,
                             variant: ButtonVariant.primary,
                             size: ButtonSize.large,

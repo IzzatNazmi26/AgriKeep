@@ -5,79 +5,78 @@ import 'package:agrikeep/widgets/card.dart';
 import 'package:agrikeep/widgets/record_item.dart';
 import 'package:agrikeep/utils/theme.dart';
 import 'package:agrikeep/services/firebase_service.dart';
-import 'package:agrikeep/models/harvest.dart';
+import 'package:agrikeep/models/activity.dart';
 
-class HarvestRecordsPage extends StatefulWidget {
+class ActivityRecordsPage extends StatefulWidget {
   final VoidCallback onBack;
-  final String? cropId;
-  final String? cultivationId;
+  final String cultivationId;
   final String? cropName;
   final void Function(String, {Map<String, dynamic>? params})? onNavigate;
 
-  const HarvestRecordsPage({
+  const ActivityRecordsPage({
     super.key,
     required this.onBack,
-    this.cropId,
-    this.cultivationId,
+    required this.cultivationId,
     this.cropName,
     this.onNavigate,
   });
 
   @override
-  State<HarvestRecordsPage> createState() => _HarvestRecordsPageState();
+  State<ActivityRecordsPage> createState() => _ActivityRecordsPageState();
 }
 
-class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
+class _ActivityRecordsPageState extends State<ActivityRecordsPage> {
   final FirebaseService _firebaseService = FirebaseService();
-  List<Harvest> _harvests = [];
+  List<Activity> _activities = [];
   bool _isLoading = true;
+  String? _cultivationName;
 
   @override
   void initState() {
     super.initState();
-    _loadHarvests();
+    _loadActivities();
+    _loadCultivationInfo();
   }
 
-  Future<void> _loadHarvests() async {
+  Future<void> _loadActivities() async {
     setState(() => _isLoading = true);
-
     try {
-      final List<Harvest> harvests;
-
-      if (widget.cultivationId != null && widget.cultivationId!.isNotEmpty) {
-        harvests = await _firebaseService.getHarvestsByCultivationId(widget.cultivationId!);
-      }
-      else if (widget.cropId != null && widget.cropId!.isNotEmpty) {
-        harvests = await _firebaseService.getHarvestsByCropId(widget.cropId!);
-      }
-      else {
-        harvests = await _firebaseService.getHarvests();
-      }
-
-      harvests.sort((a, b) => b.harvestDate.compareTo(a.harvestDate));
-
+      final activities = await _firebaseService.getActivitiesByCultivationId(widget.cultivationId);
       setState(() {
-        _harvests = harvests;
+        _activities = activities;
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error loading harvests: $e');
+      print('❌ Error loading activities: $e');
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to load harvests: ${e.toString()}'),
+          content: Text('Failed to load activities: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
 
-  Future<void> _deleteHarvest(String harvestId, int index) async {
+  Future<void> _loadCultivationInfo() async {
+    try {
+      final cultivation = await _firebaseService.getCultivationById(widget.cultivationId);
+      if (cultivation != null) {
+        setState(() {
+          _cultivationName = cultivation.cropName;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading cultivation info: $e');
+    }
+  }
+
+  Future<void> _deleteActivity(String activityId, int index) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Harvest'),
-        content: const Text('Are you sure you want to delete this harvest record?'),
+        title: const Text('Delete Activity'),
+        content: const Text('Are you sure you want to delete this activity?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -93,23 +92,24 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
 
     if (confirmed == true) {
       try {
-        await _firebaseService.deleteHarvest(harvestId);
+        await _firebaseService.deleteActivity(activityId);
 
+        // Remove from local list
         setState(() {
-          _harvests.removeAt(index);
+          _activities.removeAt(index);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Harvest deleted successfully'),
+            content: Text('Activity deleted successfully'),
             backgroundColor: Colors.green,
           ),
         );
       } catch (e) {
-        print('❌ Error deleting harvest: $e');
+        print('❌ Error deleting activity: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error deleting harvest: $e'),
+            content: Text('Error deleting activity: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -117,23 +117,18 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
     }
   }
 
-  void _editHarvest(Harvest harvest) {
+  void _editActivity(Activity activity) {
     if (widget.onNavigate != null) {
-      widget.onNavigate!('harvest-edit', params: {
-        'harvest': harvest,
+      widget.onNavigate!('activity-edit', params: {
+        'activity': activity,
         'cultivationId': widget.cultivationId,
-        'cropId': harvest.cropId,
-        'cropName': harvest.cropName,
+        'cropName': _cultivationName ?? widget.cropName,
       });
     }
   }
 
   Future<void> _refreshData() async {
-    await _loadHarvests();
-  }
-
-  double get _totalQuantity {
-    return _harvests.fold(0.0, (sum, harvest) => sum + harvest.quantityKg);
+    await _loadActivities();
   }
 
   @override
@@ -144,9 +139,7 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
         child: Column(
           children: [
             AppHeader(
-              title: widget.cropName != null && widget.cropName!.isNotEmpty
-                  ? '${widget.cropName} Harvests'
-                  : 'All Harvests',
+              title: 'Activity Records',
               onBack: widget.onBack,
             ),
             Expanded(
@@ -154,35 +147,27 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Summary card
-                    if (_harvests.isNotEmpty)
+                    // Cultivation info banner
+                    if (_cultivationName != null || widget.cropName != null)
                       CustomCard(
-                        child: Column(
+                        backgroundColor: AgriKeepTheme.primaryColor.withOpacity(0.05),
+                        border: Border.all(color: AgriKeepTheme.primaryColor.withOpacity(0.2)),
+                        child: Row(
                           children: [
-                            Text(
-                              widget.cropName != null
-                                  ? 'Total Harvested'
-                                  : 'Total Harvested',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AgriKeepTheme.textSecondary,
-                              ),
+                            Icon(
+                              Icons.eco,
+                              color: AgriKeepTheme.primaryColor,
+                              size: 24,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${_totalQuantity.toStringAsFixed(1)} kg',
-                              style: TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: AgriKeepTheme.primaryColor,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${_harvests.length} harvest${_harvests.length != 1 ? 's' : ''}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AgriKeepTheme.textTertiary,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Cultivation: ${_cultivationName ?? widget.cropName ?? "Unknown"}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: AgriKeepTheme.textPrimary,
+                                ),
                               ),
                             ),
                           ],
@@ -190,7 +175,33 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
                       ),
                     const SizedBox(height: 24),
 
-                    // Harvest records list
+                    // Summary card
+                    if (_activities.isNotEmpty)
+                      CustomCard(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Total Activities',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AgriKeepTheme.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _activities.length.toString(),
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: AgriKeepTheme.primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+
+                    // Activities list
                     if (_isLoading)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),
@@ -198,21 +209,19 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
                           child: CircularProgressIndicator(),
                         ),
                       )
-                    else if (_harvests.isEmpty)
+                    else if (_activities.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 40),
                         child: Column(
                           children: [
                             Icon(
-                              Icons.inventory,
+                              Icons.list,
                               size: 48,
                               color: AgriKeepTheme.textTertiary,
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              widget.cropName != null
-                                  ? 'No harvests recorded yet'
-                                  : 'No harvest records yet',
+                              'No activities yet',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: AgriKeepTheme.textSecondary,
@@ -220,9 +229,7 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              widget.cropName != null
-                                  ? 'Record your first harvest for this crop'
-                                  : 'Record your first harvest to see it here',
+                              'Log your first activity to see it here',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: AgriKeepTheme.textTertiary,
@@ -236,9 +243,7 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.cropName != null
-                                ? 'All Harvests'
-                                : 'Recent Harvests',
+                            'All Activities',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -246,15 +251,24 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          ..._harvests.asMap().entries.map((entry) {
+                          ..._activities.asMap().entries.map((entry) {
                             final index = entry.key;
-                            final harvest = entry.value;
+                            final activity = entry.value;
 
-                            // In harvest_records_page.dart, update the Dismissible widget (around line 140-180)
+                            String subtitle = activity.note ?? 'No additional notes';
+                            if (activity.activityType == 'Fertilizer Application' && activity.fertilizerType != null) {
+                              subtitle += '\nFertilizer: ${activity.fertilizerType}';
+                            }
+                            if (activity.activityType == 'Watering' && activity.wateringFrequency != null) {
+                              subtitle += '\nFrequency: ${activity.wateringFrequency}';
+                            }
+
+                            // Replace the Dismissible widget in activity_records_page.dart (around line 180-220)
+// Find the Dismissible widget and replace it with:
 
                             return Dismissible(
-                              key: Key(harvest.id),
-                              direction: DismissDirection.horizontal, // ← Change to horizontal
+                              key: Key(activity.id),
+                              direction: DismissDirection.horizontal, // ← Allow both directions
                               background: Container(
                                 color: AgriKeepTheme.primaryColor, // ← GREEN for edit (left to right)
                                 alignment: Alignment.centerLeft,
@@ -270,21 +284,21 @@ class _HarvestRecordsPageState extends State<HarvestRecordsPage> {
                               confirmDismiss: (direction) async {
                                 if (direction == DismissDirection.endToStart) {
                                   // DELETE ACTION (swipe right to left)
-                                  await _deleteHarvest(harvest.id, index);
-                                  return false;
+                                  await _deleteActivity(activity.id, index);
+                                  return false; // We handle deletion in the method
                                 } else if (direction == DismissDirection.startToEnd) {
                                   // EDIT ACTION (swipe left to right)
-                                  _editHarvest(harvest);
-                                  return false;
+                                  _editActivity(activity);
+                                  return false; // We handle navigation in the method
                                 }
                                 return false;
                               },
                               child: RecordItem(
-                                title: harvest.cropName,
-                                subtitle: harvest.note ?? 'No additional notes',
-                                value: '${harvest.quantityKg.toStringAsFixed(1)} kg',
-                                date: DateFormat('MM/dd/yyyy').format(harvest.harvestDate),
-                                badge: DateFormat('HH:mm').format(harvest.harvestDate),
+                                title: activity.activityType,
+                                subtitle: subtitle,
+                                value: DateFormat('HH:mm').format(activity.activityDate),
+                                date: DateFormat('MM/dd/yyyy').format(activity.activityDate),
+                                badge: 'Activity',
                               ),
                             );
                           }).toList(),
