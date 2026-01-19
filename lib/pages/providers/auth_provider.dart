@@ -217,7 +217,7 @@ class AuthProvider with ChangeNotifier {
       case 'invalid-email':
         return 'Invalid email address';
       default:
-        return 'Authentication failed';
+        return 'Authentication failed. Please check again';
     }
   }
 

@@ -26,6 +26,7 @@ class _LoginPageState extends State<LoginPage> {
   final _identifierController = TextEditingController(); // Changed from emailController
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true; // Add this for password visibility
 
   @override
   void dispose() {
@@ -56,6 +57,13 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     // If login successful, the auth state listener in App.dart will handle navigation.
+  }
+
+  // Toggle password visibility
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscurePassword = !_obscurePassword;
+    });
   }
 
   @override
@@ -124,9 +132,18 @@ class _LoginPageState extends State<LoginPage> {
                     InputField(
                       label: 'Password',
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: _obscurePassword, // Use the state variable
                       hintText: 'Enter your password',
                       required: true,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: AgriKeepTheme.textTertiary,
+                        ),
+                        onPressed: _togglePasswordVisibility,
+                        splashRadius: 20,
+                        padding: EdgeInsets.zero, // Remove extra padding
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your password';
@@ -140,16 +157,16 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: widget.onForgotPassword,
-                        child: Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            color: AgriKeepTheme.primaryColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                      // child: TextButton(
+                      //   onPressed: widget.onForgotPassword,
+                      //   child: Text(
+                      //     'Forgot Password?',
+                      //     style: TextStyle(
+                      //       color: AgriKeepTheme.primaryColor,
+                      //       fontWeight: FontWeight.w600,
+                      //     ),
+                      //   ),
+                      // ),
                     ),
                     const SizedBox(height: 24),
                     CustomButton(
