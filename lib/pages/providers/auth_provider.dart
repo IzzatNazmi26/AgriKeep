@@ -87,6 +87,8 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // In auth_provider.dart, update the signUpWithEmailPassword method:
+
   Future<void> signUpWithEmailPassword(
       String email,
       String password,
@@ -101,8 +103,39 @@ class AuthProvider with ChangeNotifier {
 
       print('🔄 Starting signup for: $email');
 
-      // 1. First create Firebase Auth user
-      print('1. Creating Firebase Auth user...');
+      // 1. FIRST check if username already exists
+      print('1. Checking if username exists: $username');
+      final usernameSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: username.toLowerCase())
+          .limit(1)
+          .get();
+
+      if (usernameSnapshot.docs.isNotEmpty) {
+        throw FirebaseAuthException(
+          code: 'username-exists',
+          message: 'Username is already taken',
+        );
+      }
+
+      // 2. Check if email already exists (optional but good practice)
+      // Note: Firebase Auth will catch this during createUserWithEmailAndPassword,
+      // but we can check first to give better error messages
+      final emailSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (emailSnapshot.docs.isNotEmpty) {
+        throw FirebaseAuthException(
+          code: 'email-already-in-use',
+          message: 'Email is already in use',
+        );
+      }
+
+      // 3. Create Firebase Auth user
+      print('2. Creating Firebase Auth user...');
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -112,8 +145,8 @@ class AuthProvider with ChangeNotifier {
 
       final user = userCredential.user;
       if (user != null) {
-        // 2. Save to Firestore
-        print('2. Saving to Firestore...');
+        // 4. Save to Firestore
+        print('3. Saving to Firestore...');
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -129,7 +162,7 @@ class AuthProvider with ChangeNotifier {
 
         print('✅ Firestore document saved');
 
-        // 3. Create local model
+        // 5. Create local model
         _currentUser = UserModel(
           id: user.uid,
           email: email,
@@ -158,10 +191,9 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-// Also update the updateUserProfile method to remove fullName:
+  // In auth_provider.dart, update the updateUserProfile method:
   Future<void> updateUserProfile({
-    String? username, // Changed: from fullName to username
-    String? country,
+    String? username,
     String? state,
     String? phoneNumber,
     String? profileImageUrl,
@@ -170,33 +202,57 @@ class AuthProvider with ChangeNotifier {
       if (_currentUser == null) return;
 
       _isLoading = true;
+      _error = null; // Clear previous errors
       notifyListeners();
 
-      // Update Firestore
+      // If username is being changed to a new one
+      if (username != null && username.toLowerCase() != _currentUser!.username.toLowerCase()) {
+        // Check if new username already exists
+        final usernameSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('username', isEqualTo: username.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (usernameSnapshot.docs.isNotEmpty) {
+          // Check if it's the current user's own username
+          final isSameUser = usernameSnapshot.docs.first.id == _currentUser!.id;
+          if (!isSameUser) {
+            // Set a clean error message
+            _error = 'Username is already taken. Please choose another one.';
+            _isLoading = false;
+            notifyListeners();
+            return; // Stop here
+          }
+        }
+      }
+
+      // If all checks pass, update the profile
       await FirebaseFirestore.instance
           .collection('users')
           .doc(_currentUser!.id)
           .update({
-        'username': username ?? _currentUser!.username,
-        'state': state ?? _currentUser!.state, // CHANGED: from country to state
-        'phoneNumber': phoneNumber ?? _currentUser!.phoneNumber,
-        'profileImageUrl': profileImageUrl ?? _currentUser!.profileImageUrl,
+        if (username != null) 'username': username.toLowerCase(),
+        if (state != null) 'state': state,
+        if (phoneNumber != null) 'phoneNumber': phoneNumber,
+        if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
       });
 
       // Update local model
       _currentUser = _currentUser!.copyWith(
         username: username ?? _currentUser!.username,
-        state: state ?? _currentUser!.state, // CHANGED: from country to state
+        state: state ?? _currentUser!.state,
         phoneNumber: phoneNumber ?? _currentUser!.phoneNumber,
         profileImageUrl: profileImageUrl ?? _currentUser!.profileImageUrl,
         updatedAt: DateTime.now(),
       );
+
+      _error = null; // Clear error on success
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to update profile';
-      rethrow;
-    } finally {
+      // For any other errors, show a generic message
+      _error = 'Failed to update profile. Please try again.';
       _isLoading = false;
       notifyListeners();
     }
@@ -230,4 +286,9 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
 }
+

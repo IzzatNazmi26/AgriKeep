@@ -94,20 +94,23 @@ class _SignUpPageState extends State<SignUpPage> {
 
     setState(() => _isLoading = true);
 
-    // Use the updated signup method with phone and state.
     await authProvider.signUpWithEmailPassword(
       _emailController.text.trim(),
       _passwordController.text.trim(),
       _usernameController.text.trim(),
-      _stateController.text.trim(), // CHANGED: state instead of country
-      _phoneController.text.trim(), // ADDED: phone number
+      _stateController.text.trim(),
+      _phoneController.text.trim(),
     );
 
     setState(() => _isLoading = false);
 
+    // Check for provider error
     if (authProvider.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(authProvider.error!)),
+        SnackBar(
+          content: Text(authProvider.error!),
+          backgroundColor: AgriKeepTheme.errorColor,
+        ),
       );
       return;
     }
@@ -116,6 +119,7 @@ class _SignUpPageState extends State<SignUpPage> {
     widget.onSignUp();
     print('✅ User created with ID: ${authProvider.firebaseUser?.uid}');
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +170,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 child: Column(
                   children: [
                     // Username field
+                    // In signup_page.dart, update the Username field in the Form:
                     InputField(
                       label: 'Username',
                       controller: _usernameController,

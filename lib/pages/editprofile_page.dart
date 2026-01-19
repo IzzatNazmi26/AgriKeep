@@ -52,39 +52,46 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     setState(() => _isLoading = true);
 
-    try {
-      await authProvider.updateUserProfile(
-        username: _usernameController.text.trim(),
-        state: _stateController.text.trim().isNotEmpty
-            ? _stateController.text.trim()
-            : null,
-        phoneNumber: _phoneController.text.trim().isNotEmpty
-            ? _phoneController.text.trim()
-            : null,
-      );
+    // Clear any previous errors
+    authProvider.clearError();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
+    await authProvider.updateUserProfile(
+      username: _usernameController.text.trim(),
+      state: _stateController.text.trim().isNotEmpty
+          ? _stateController.text.trim()
+          : null,
+      phoneNumber: _phoneController.text.trim().isNotEmpty
+          ? _phoneController.text.trim()
+          : null,
+    );
 
-      // Go back after successful update
-      Future.delayed(const Duration(milliseconds: 500), () {
-        widget.onBack();
-      });
+    setState(() => _isLoading = false);
 
-    } catch (e) {
+    // Check if there was an error from the provider
+    if (authProvider.error != null) {
+      // Show the clean error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to update profile: $e'),
+          content: Text(authProvider.error!),
           backgroundColor: AgriKeepTheme.errorColor,
+          duration: Duration(seconds: 3),
         ),
       );
-    } finally {
-      setState(() => _isLoading = false);
+      return; // Don't proceed further
     }
+
+    // If no error, show success
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Profile updated successfully'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    // Wait a bit, then go back
+    await Future.delayed(const Duration(milliseconds: 1500));
+    widget.onBack();
   }
 
   @override
