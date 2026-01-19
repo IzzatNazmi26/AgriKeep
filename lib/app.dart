@@ -34,6 +34,9 @@ class _AppState extends State<App> {
   AppState _appState = AppState.splash;
   String _currentPage = 'dashboard';
   Map<String, dynamic>? _currentPageParams;
+  // ADD THIS: Prevent multiple navigation triggers
+  bool _isHandlingAuthChange = false;
+
 
   void _setAppState(AppState state) {
     print("🔄 Changing app state from $_appState to $state");
@@ -69,18 +72,51 @@ class _AppState extends State<App> {
 
     final authProvider = context.watch<AuthProvider>();
 
+    // Handle authenticated user (already logged in)
     if (authProvider.isAuthenticated && _appState != AppState.app) {
+      // Only navigate if we're NOT already in app state
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _setAppState(AppState.app);
       });
     }
 
-    if (!authProvider.isAuthenticated &&
-        (_appState == AppState.app || _appState == AppState.welcome)) {
+    // Handle non-authenticated user
+    if (!authProvider.isAuthenticated && _appState == AppState.app) {
+      // If user was in app but now not authenticated (logged out), go to welcome
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _setAppState(AppState.login);
+        _setAppState(AppState.welcome);
       });
     }
+
+    if (authProvider.isAuthenticated && _appState != AppState.app && !_isHandlingAuthChange) {
+      _isHandlingAuthChange = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _setAppState(AppState.app);
+        _isHandlingAuthChange = false;
+      });
+    }
+
+    // Handle non-authenticated user who was in app (logged out)
+    if (!authProvider.isAuthenticated && _appState == AppState.app && !_isHandlingAuthChange) {
+      _isHandlingAuthChange = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _setAppState(AppState.welcome);
+        _isHandlingAuthChange = false;
+      });
+    }
+
+    // if (authProvider.isAuthenticated && _appState != AppState.app) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     _setAppState(AppState.app);
+    //   });
+    // }
+    //
+    // if (!authProvider.isAuthenticated &&
+    //     (_appState == AppState.app || _appState == AppState.welcome)) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     _setAppState(AppState.login);
+    //   });
+    // }
 
     if (_appState == AppState.splash) {
       return SplashScreen(
@@ -89,9 +125,11 @@ class _AppState extends State<App> {
             final authProvider = context.read<AuthProvider>();
 
             if (authProvider.isAuthenticated) {
+              // User is already logged in - go straight to app
               _setAppState(AppState.app);
             } else {
-              _setAppState(AppState.login);
+              // User not logged in - go to welcome page
+              _setAppState(AppState.welcome);
             }
           });
         },
@@ -106,7 +144,10 @@ class _AppState extends State<App> {
 
     if (_appState == AppState.login) {
       return LoginPage(
-        onLogin: _handleLogin,
+        onLogin: () {
+          // When login is successful, go to app
+          _setAppState(AppState.app);
+        },
         onSignUp: () => _setAppState(AppState.signup),
         onForgotPassword: () => _setAppState(AppState.forgotPassword),
       );
@@ -114,7 +155,10 @@ class _AppState extends State<App> {
 
     if (_appState == AppState.signup) {
       return SignUpPage(
-        onSignUp: _handleSignUp,
+        onSignUp: () {
+          // When signup is successful, go to app
+          _setAppState(AppState.app);
+        },
         onBackToLogin: () => _setAppState(AppState.login),
       );
     }
@@ -126,6 +170,16 @@ class _AppState extends State<App> {
     }
 
     if (_appState == AppState.app) {
+      // Check if user is actually authenticated
+      if (!authProvider.isAuthenticated) {
+        // If not authenticated, go back to welcome page
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _setAppState(AppState.welcome);
+        });
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
       return _buildMainApp();
     }
 

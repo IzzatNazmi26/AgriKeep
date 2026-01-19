@@ -273,7 +273,7 @@ class AuthProvider with ChangeNotifier {
       case 'invalid-email':
         return 'Invalid email address';
       default:
-        return 'Authentication failed. Please check again';
+        return 'Authentication failed. Please check your username/email or password';
     }
   }
 

@@ -53,10 +53,11 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(authProvider.error!)),
       );
-      //authProvider.clearError();
+      return; // ADD THIS LINE
     }
 
-    // If login successful, the auth state listener in App.dart will handle navigation.
+    // If login successful, call the callback
+    widget.onLogin(); // ADD THIS LINE
   }
 
   // Toggle password visibility
