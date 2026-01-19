@@ -4,6 +4,7 @@ import 'package:agrikeep/utils/theme.dart';
 class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback? onBack;
+  final Widget? leading;
   final Widget? action;
   final bool showDivider;
 
@@ -11,6 +12,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.title,
     this.onBack,
+    this.leading,
     this.action,
     this.showDivider = true,
   });
@@ -39,6 +41,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
           height: 64,
           child: Row(
             children: [
+              // Back button OR leading widget
               if (onBack != null)
                 IconButton(
                   onPressed: onBack,
@@ -46,8 +49,11 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                   color: AgriKeepTheme.textPrimary,
                   splashRadius: 20,
                 )
+              else if (leading != null)
+                leading!
               else
                 const SizedBox(width: 48),
+
               Expanded(
                 child: Center(
                   child: Text(
@@ -62,8 +68,10 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
               ),
+
+              // Action widget or placeholder
               action ??
-                  (onBack != null
+                  (onBack != null || leading != null
                       ? const SizedBox(width: 48)
                       : const SizedBox(width: 16)),
             ],

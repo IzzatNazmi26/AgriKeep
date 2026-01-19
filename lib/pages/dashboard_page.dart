@@ -69,6 +69,66 @@ class _DashboardPageState extends State<DashboardPage> {
     await _loadData();
   }
 
+  // Function to show inquiry dialog
+  void _showInquiryDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.help_outline, color: AgriKeepTheme.primaryColor),
+            const SizedBox(width: 8),
+            const Text('Need Help?'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'If you have any problems or questions, feel free to contact:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.person, color: Colors.green),
+              title: const Text(
+                'Izzat Nazmi',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text('Support Representative'),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.phone, color: Colors.blue),
+              title: const Text(
+                '011-10744269',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text('Call or WhatsApp'),
+              onTap: () {
+                // You could add phone call functionality here
+                // launchUrl(Uri.parse('tel:01110744269'));
+              },
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.email, color: Colors.orange),
+              title: const Text('izzatnzmi@gmail.com',style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),),
+              subtitle: const Text('Email us anytime'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -79,14 +139,22 @@ class _DashboardPageState extends State<DashboardPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with profile button
+            // Header with inquiry and profile buttons
             AppHeader(
               title: 'Dashboard',
+              leading: IconButton(
+                onPressed: _showInquiryDialog,
+                icon: const Icon(Icons.help_outline),
+                color: AgriKeepTheme.textPrimary,
+                splashRadius: 20,
+                tooltip: 'Help & Support',
+              ),
               action: IconButton(
                 onPressed: () => widget.onNavigate('profile'),
                 icon: const Icon(Icons.person_outline),
                 color: AgriKeepTheme.textPrimary,
                 splashRadius: 20,
+                tooltip: 'Profile',
               ),
             ),
 
